@@ -113,7 +113,7 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
 
     private async throughMiddleware(context: LinkRPCContext,direction:'inbound'|'outbound', index?: number | undefined): Promise<LinkRPCContext> {
-        if (index == undefined) {
+        if (!index) {
             index = 0;
         }
 
@@ -125,6 +125,9 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
         let executedNextByMiddleware = false;
         const nextFn:((context:LinkRPCContext) => Promise<LinkRPCContext>) = async (context) => {
+            if(!index){
+                throw new Error("index is undefined");
+            }
             if(direction == 'inbound'){
                 context = await this.throughMiddleware(context,direction,index + 1);
             }else if(direction == 'outbound'){
