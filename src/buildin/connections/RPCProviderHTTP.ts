@@ -48,8 +48,8 @@ class RPCConnectionHTTP extends RPCConnection{
                 method: 'POST',
                 body: JSON.stringify(packet),
                 headers: {
-                    /** Must set typedrpc to 1 ,otherwise server will think it is a normal POST request */
-                    typedrpc: '1',
+                    /** Must set linkrpc to 1 ,otherwise server will think it is a normal POST request */
+                    linkrpc: '1',
                 }
             }).then((res) => {
                 return res.text();
@@ -75,7 +75,7 @@ class RPCConnectionHTTP extends RPCConnection{
     }
 }
 
-type TypedRPCProviderHTTPConfig = {
+type LinkRPCProviderHTTPConfig = {
     lib?: SupportLib,
     server?: InstanceType<SupportLibHTTP['Server'] | SupportLibHTTPS['Server']>,
     protocol?: Protocol,
@@ -88,11 +88,11 @@ type TypedRPCProviderHTTPConfig = {
 class RPCProviderHTTP extends RPCProvider{
 
     private defaultProtocol: Protocol = 'http';
-    public config: TypedRPCProviderHTTPConfig;
+    public config: LinkRPCProviderHTTPConfig;
 
-    constructor(config?: TypedRPCProviderHTTPConfig) {
+    constructor(config?: LinkRPCProviderHTTPConfig) {
         super();
-        const defaultConfig: TypedRPCProviderHTTPConfig = {
+        const defaultConfig: LinkRPCProviderHTTPConfig = {
             
         }
         this.config = { ...defaultConfig, ...config };
@@ -127,14 +127,14 @@ class RPCProviderHTTP extends RPCProvider{
 
         server.on('request',(req,res) => {
             /** 
-             * Request must be POST method and typedrpc=1 in headers
+             * Request must be POST method and linkrpc=1 in headers
              * and body must be JSON string
              * and the body must be a valid packet
              * 
              * if not,ignore it
              */
             if (req.method !== 'POST'
-            || req.headers['typedrpc'] !== '1'
+            || req.headers['linkrpc'] !== '1'
             ) {
                 return;
             }

@@ -8,7 +8,7 @@ type RPCHandlerEvents = {
     
 }
 /**
- * 处理所有TypedRPC数据包，将 request packet 调用对应的 hook 转为 response packet
+ * 处理所有LinkRPC数据包，将 request packet 调用对应的 hook 转为 response packet
  * 并混合 Context 功能
  */
 class RPCHandler{

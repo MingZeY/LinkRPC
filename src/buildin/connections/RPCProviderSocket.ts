@@ -42,7 +42,7 @@ class RPCConnectionSocket extends RPCConnection{
     
 }
 
-type TypedRPCConnectionProviderSocketConfig = {
+type LinkRPCConnectionProviderSocketConfig = {
     server?:InstanceType<SupportLibNet['Server']> | undefined;
     lib?:SupportLib | undefined;
 }
@@ -52,7 +52,7 @@ class RPCProviderSocket extends RPCProvider{
 
     private sockets:Set<InstanceType<SupportLibNet['Socket']>> = new Set();
 
-    constructor(public config:TypedRPCConnectionProviderSocketConfig = {}){
+    constructor(public config:LinkRPCConnectionProviderSocketConfig = {}){
         super();
         this.initLib();
         if(this.config.server){
