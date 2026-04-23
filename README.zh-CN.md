@@ -11,7 +11,7 @@
 ## 特性
 
 - 🛡️ **类型安全的 RPC 调用** - 利用 TypeScript 的类型系统实现端到端的类型安全
-- 🔌 **多种连接类型** - 支持 HTTP、Socket 和 SocketIO 连接，或自定义`LinkRPCConnectionProvider`
+- 🔌 **多种连接类型** - 支持 HTTP、Socket 和 SocketIO 连接，或自定义`LinkRPCProvider`
 - 🔄 **中间件支持** - 可扩展的中间件系统，用于请求/响应处理
 - 📝 **上下文感知** - 内置上下文系统，用于在处理程序之间传递数据
 - 🔁 **双向通信** - 支持客户端和服务器之间的双向 RPC 调用，能力取决于连接类型
@@ -102,13 +102,13 @@ LinkRPC 支持多种连接类型：
 1. **HTTP** - HTTP 连接
 2. **Socket** - 原始套接字连接
 3. **SocketIO** - Socket.IO 连接
-4. **自定义** - 用户定义的连接提供者，参见抽象类 `LinkRPCConnectionProvider`
+4. **自定义** - 用户定义的连接提供者，参见抽象类 `LinkRPCProvider`
 
 ```typescript
 new LinkRPCServer({
     local:ServerAPIDefine,
     connection:{
-        provider:new LinkRPCConnectionProviderHTTP(),
+        // optional, default is default provider
         // 连接层 - 在此处使用 Provider 或 自定义的 Provider
         // connection:new LinkRPCBuildin.provider.default(),
         // connection:new LinkRPCBuildin.provider.http(),

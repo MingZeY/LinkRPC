@@ -11,7 +11,7 @@ A TypeScript-based RPC framework that supports multiple connection types, includ
 ## Features
 
 - 🛡️ **Type-safe RPC calls** - Utilize TypeScript's type system for end-to-end type safety
-- 🔌 **Multiple connection types** - Support HTTP, Socket, and SocketIO connections, or custom `LinkRPCConnectionProvider`
+- 🔌 **Multiple connection types** - Support HTTP, Socket, and SocketIO connections, or custom `LinkRPCProvider`
 - 🔄 **Middleware support** - Extensible middleware system for request/response processing
 - 📝 **Context awareness** - Built-in context system for passing data between handlers
 - 🔁 **Bidirectional communication** - Support for bidirectional RPC calls between client and server, capability depends on connection type
@@ -102,13 +102,13 @@ LinkRPC supports multiple connection types:
 1. **HTTP** - HTTP connection
 2. **Socket** - Raw socket connection
 3. **SocketIO** - Socket.IO connection
-4. **Custom** - User-defined connection provider, see abstract class `LinkRPCConnectionProvider`
+4. **Custom** - User-defined connection provider, see abstract class `LinkRPCProvider`
 
 ```typescript
 new LinkRPCServer({
     local:ServerAPIDefine,
     connection:{
-        provider:new LinkRPCConnectionProviderHTTP(),
+        // optional, default is default provider
         // Connection layer - use Provider or custom Provider here
         // connection:new LinkRPCBuildin.provider.default(),
         // connection:new LinkRPCBuildin.provider.http(),
