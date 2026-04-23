@@ -8,6 +8,7 @@ const testList = [
     import('./BuildinSocket.js'),
     import('./BuildinSocketIO.js'),
     import('./Middleware.js'),
+    import('./Context.js'),
 ]
 
 const tests:Array<TestCase> = [];

@@ -18,8 +18,15 @@ class MathService implements DefineServerMathService,LinkRPCContextAware{
 
     @LinkRPCAPIDefine.method()
     add(a: number, b: number): number {
-        const contxt = this[LinkRPCContextSymbol];
-        return a+b;
+        // 使用Context进行计算
+        const context = this[LinkRPCContextSymbol];
+        if(!context?.request?.args
+        || typeof context.request.args[0] !== 'number'
+        || typeof context.request.args[1] !== 'number'
+        ){
+            throw new Error("Context Error");
+        }
+        return context.request.args[0] + context.request.args[1];
     }
     
 }
@@ -32,22 +39,13 @@ export default class TestContext extends TestCase{
     private cleanFns:(() => Promise<any>)[] = [];
 
     async run(): Promise<boolean> {
-        const define = new LinkRPCAPIDefine<{
-            math:{
-                add(a:number,b:number):number
-            }
-        }>();
 
         const server = new LinkRPCServer({
-            local:define,
+            local:DefineServer,
             provider:new LinkRPCBuildin.provider.http()
         });
 
-        server.hook('math','add',{
-            handler(a, b) {
-                return a+b;
-            },
-        })
+        server.hookService('math',new MathService());
 
         await server.listen({
             port:3060
@@ -58,7 +56,7 @@ export default class TestContext extends TestCase{
         })
 
         const client = new LinkRPCClient({
-            remote:define,
+            remote:DefineServer,
             provider:new LinkRPCBuildin.provider.http(),
         })
 
