@@ -1,6 +1,7 @@
 import { LinkRPCAPI } from "./api.js";
 import { LinkRPCBuildin } from "./buildin/buildin.js";
 import type { LinkRPCConnection } from "./connection.js";
+import { DEFAULT_CORE_REQUEST_TIMEOUT } from "./const.js";
 import type { LinkRPCContext } from "./context.js";
 import type { LinkRPCAPIDefine } from "./define.js";
 import { LinkRPCHandler } from "./handler.js";
@@ -10,8 +11,10 @@ import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
 
 type LinkRPCCoreEvents = {
 
+}
 
-
+type LinkRPCCoreRequestOptions = {
+    timeout?:number,
 }
 
 /**
@@ -20,10 +23,9 @@ type LinkRPCCoreEvents = {
  */
 class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any>> {
 
-    private destroyed = false;
     public emitter = new TypedEmitter<LinkRPCCoreEvents>();
+    private destroyed = false;
     private onConnectionReciveEventHandler: (packet: LinkRPCPacket) => void;
-
 
     public requestContextRecords = new Map</* requestId */string,{
         context:LinkRPCContext,
@@ -37,6 +39,13 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
     public define:{
         local?:L | undefined,
         remote?:R | undefined,
+    }
+    public default:{
+        requestOptions:LinkRPCCoreRequestOptions,
+    } = {
+        requestOptions:{
+            timeout:DEFAULT_CORE_REQUEST_TIMEOUT
+        }
     }
 
     constructor(params:{
@@ -230,9 +239,7 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
     //     record.resolve(responsePacket);
     // }
 
-    public async request(request:LinkRPCRequestPacket,options?:{
-        timeout?:number
-    }): Promise<LinkRPCResponsePacket>{
+    public async request(request:LinkRPCRequestPacket,options?:LinkRPCCoreRequestOptions): Promise<LinkRPCResponsePacket>{
 
         const requestId = request.id;
 
@@ -246,7 +253,7 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         const responseContextPromise = this.requestContextRecord(requestId,context);
 
         // 设置超时
-        const requestTimeout = options?.timeout || 10 * 1000;
+        const requestTimeout = options?.timeout || this.default.requestOptions.timeout;
         let timeoutRejecter = setTimeout(() => {
             context.response = LinkRPCPacketFactory.createResponsePacket({
                 requestId:requestId,

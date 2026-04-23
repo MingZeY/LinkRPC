@@ -1,0 +1,1 @@
+export const DEFAULT_CORE_REQUEST_TIMEOUT = 60 * 1000;
