@@ -49,10 +49,10 @@ const server = new LinkRPCServer({
     // Let TypeScript infer types from ServerAPIDefine
     local:ServerAPIDefine,
     // Connection layer - use Provider or custom Provider here
-    // connection:new LinkRPCBuildin.provider.default(),
-    // connection:new LinkRPCBuildin.provider.http(),
-    // connection:new LinkRPCBuildin.provider.socket(),
-    // connection:new LinkRPCBuildin.provider.socketio(),
+    // provider:new LinkRPCBuildin.provider.default(),
+    // provider:new LinkRPCBuildin.provider.http(),
+    // provider:new LinkRPCBuildin.provider.socket(),
+    // provider:new LinkRPCBuildin.provider.socketio(),
 });
 
 // Hook service method
@@ -107,14 +107,12 @@ LinkRPC supports multiple connection types:
 ```typescript
 new LinkRPCServer({
     local:ServerAPIDefine,
-    connection:{
-        // optional, default is default provider
-        // Connection layer - use Provider or custom Provider here
-        // connection:new LinkRPCBuildin.provider.default(),
-        // connection:new LinkRPCBuildin.provider.http(),
-        // connection:new LinkRPCBuildin.provider.socket(),
-        // connection:new LinkRPCBuildin.provider.socketio(),
-    }
+    // optional, default is default provider
+    // Connection layer - use Provider or custom Provider here
+    // provider:new LinkRPCBuildin.provider.default(),
+    // provider:new LinkRPCBuildin.provider.http(),
+    // provider:new LinkRPCBuildin.provider.socket(),
+    // provider:new LinkRPCBuildin.provider.socketio(),
 })
 ```
 

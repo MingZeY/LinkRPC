@@ -49,10 +49,10 @@ const server = new LinkRPCServer({
     // 让 TypeScript 从 ServerAPIDefine 推断类型
     local:ServerAPIDefine,
     // 连接层 - 在此处使用 Provider 或 自定义的 Provider
-    // connection:new LinkRPCBuildin.provider.default(),
-    // connection:new LinkRPCBuildin.provider.http(),
-    // connection:new LinkRPCBuildin.provider.socket(),
-    // connection:new LinkRPCBuildin.provider.socketio(),
+    // provider:new LinkRPCBuildin.provider.default(),
+    // provider:new LinkRPCBuildin.provider.http(),
+    // provider:new LinkRPCBuildin.provider.socket(),
+    // provider:new LinkRPCBuildin.provider.socketio(),
 });
 
 // 挂钩服务方法
@@ -107,14 +107,12 @@ LinkRPC 支持多种连接类型：
 ```typescript
 new LinkRPCServer({
     local:ServerAPIDefine,
-    connection:{
-        // optional, default is default provider
-        // 连接层 - 在此处使用 Provider 或 自定义的 Provider
-        // connection:new LinkRPCBuildin.provider.default(),
-        // connection:new LinkRPCBuildin.provider.http(),
-        // connection:new LinkRPCBuildin.provider.socket(),
-        // connection:new LinkRPCBuildin.provider.socketio(),
-    }
+    // optional, default is default provider
+    // 连接层 - 在此处使用 Provider 或 自定义的 Provider
+    // provider:new LinkRPCBuildin.provider.default(),
+    // provider:new LinkRPCBuildin.provider.http(),
+    // provider:new LinkRPCBuildin.provider.socket(),
+    // provider:new LinkRPCBuildin.provider.socketio(),
 })
 ```
 
