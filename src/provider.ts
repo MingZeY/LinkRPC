@@ -1,14 +1,14 @@
-import type { RPCConnection } from "./connection.js"
+import type { LinkRPCConnection } from "./connection.js"
 import { TypedEmitter } from "./utils.js"
 
-type RPCProviderEvents = {
+type LinkRPCProviderEvents = {
     /** when a provider receives a connection from a client after listening */
-    connection(connection:RPCConnection):void,
+    connection(connection:LinkRPCConnection):void,
 }
 
-abstract class RPCProvider{
+abstract class LinkRPCProvider{
 
-    public emitter = new TypedEmitter<RPCProviderEvents>();
+    public emitter = new TypedEmitter<LinkRPCProviderEvents>();
 
     /** only server, listen for connections and emit connection event */
     abstract listen(params?:{
@@ -23,10 +23,10 @@ abstract class RPCProvider{
     abstract connect(params?:{
         hostname?:string | undefined,
         port?:number | undefined
-    }):Promise<RPCConnection>;
+    }):Promise<LinkRPCConnection>;
 
 }
 
 export{
-    RPCProvider
+    LinkRPCProvider
 }

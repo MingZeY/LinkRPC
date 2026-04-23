@@ -1,30 +1,30 @@
-import type { RPCCore } from "./core.js";
-import type { RPCPacket, RPCRequestPacket, RPCResponsePacket } from "./packet.js"
+import type { LinkRPCCore } from "./core.js";
+import type { LinkRPCPacket, LinkRPCRequestPacket, LinkRPCResponsePacket } from "./packet.js"
+import type { LinkRPCContextSymbol } from "./symbol.js";
 
-type RPCContext = {
-    core:RPCCore<any,any>,
+type LinkRPCContext = {
+    core:LinkRPCCore<any,any>,
 
     /** 当前正在进站的包 */
-    inbound?:RPCPacket | undefined,
+    inbound?:LinkRPCPacket | undefined,
 
     /** 当前正在出站的包 */
-    outbound?:RPCPacket | undefined,
+    outbound?:LinkRPCPacket | undefined,
 
     /** 对应的请求包 */
-    request?:RPCRequestPacket | undefined,
+    request?:LinkRPCRequestPacket | undefined,
     /** 对应的响应包 */
-    response?:RPCResponsePacket | undefined,
+    response?:LinkRPCResponsePacket | undefined,
 
     /** Context额外携带的信息 */
     extra?:Record<string,any> | undefined,
 }
 
-export const RPCContextSymbol = Symbol("RPCContext");
-interface RPCContextAware{
-    [RPCContextSymbol]:RPCContext | null,
+interface LinkRPCContextAware{
+    [LinkRPCContextSymbol]:LinkRPCContext | undefined,
 }
 
 export type {
-    RPCContextAware,
-    RPCContext,
+    LinkRPCContextAware,
+    LinkRPCContext,
 }

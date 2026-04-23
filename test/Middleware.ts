@@ -1,5 +1,4 @@
-import { RPCBuildin } from "../src/buildin/buildin.js";
-import { LinkRPCAPIDefine, LinkRPCClient, LinkRPCMiddleware, LinkRPCPacketFactory, LinkRPCServer, type LinkRPCContext } from "../src/index.js";
+import { LinkRPCAPIDefine, LinkRPCBuildin, LinkRPCClient, LinkRPCMiddleware, LinkRPCPacketFactory, LinkRPCServer, type LinkRPCContext } from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
 class AuthMiddleware extends LinkRPCMiddleware{
@@ -87,7 +86,7 @@ export default class TestMiddleware extends TestCase{
 
         const server = new LinkRPCServer({
             local:define,
-            provider:new RPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.memory()
         });
         server.use(new AuthMiddleware());
         server.hook('auth','login',{
@@ -104,7 +103,7 @@ export default class TestMiddleware extends TestCase{
 
         const client = new LinkRPCClient({
             remote:define,
-            provider:new RPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.memory()
         })
         client.use(new AuthMiddleware());
         const connection = await client.connect({port:1});

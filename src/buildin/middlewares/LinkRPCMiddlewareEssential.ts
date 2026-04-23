@@ -1,0 +1,54 @@
+import type { LinkRPCContext } from "../../context.js";
+import { LinkRPCMiddleware } from "../../middleware.js";
+import { LinkRPCPacketFactory, type LinkRPCResponsePacket } from "../../packet.js";
+
+class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
+    
+    /**
+     * 入站请求包：将请求转换为响应包
+     * 入站响应包：将响应包对应的请求包resolve
+     */
+
+    async inbound(context: LinkRPCContext, next: (context: LinkRPCContext) => Promise<LinkRPCContext>): Promise<LinkRPCContext> {
+        context = await next(context);
+        if(context.request
+        /** 包含一个正确的请求包 */
+        && context.request == context.inbound 
+        /** 没有响应包 */
+        && context.response == undefined
+        /** 没有需要发送的响应包 */
+        && context.outbound == undefined){// 收到请求
+            const requestId = context.request.id;
+            const responsePacket = await context.core.handler.handle(context.request,context).catch((e) => {
+                return LinkRPCPacketFactory.createResponsePacket({
+                    requestId:requestId,
+                    error:e.message,
+                })
+            });
+            context.response = responsePacket;
+            context.outbound = responsePacket;
+            return context;
+        }else if(context.response
+        /** 包含一个正确的响应包 */
+        && context.response == context.inbound
+        /** 包含一个正确的请求包 */
+        && context.request
+        /** 不再有新的数据要发送 */
+        && context.outbound == undefined
+        ){// 收到响应
+            context.core.requestContextResolve(context.request.id,context);
+            return context;
+        }else{
+            return next(context);
+        }
+    }
+
+    async outbound(context: LinkRPCContext, next: (context: LinkRPCContext) => Promise<LinkRPCContext>): Promise<LinkRPCContext> {
+        return next(context);
+    }
+
+}
+
+export {
+    LinkRPCMiddlewareEssential
+}

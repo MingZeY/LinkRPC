@@ -1,17 +1,17 @@
-import { RPCConnection } from "../../connection.js";
-import type { RPCPacket } from "../../packet.js";
-import { RPCProvider } from "../../provider.js";
+import { LinkRPCConnection } from "../../connection.js";
+import type { LinkRPCPacket } from "../../packet.js";
+import { LinkRPCProvider } from "../../provider.js";
 
-class RPCConnectionMemory extends RPCConnection{
+class LinkRPCConnectionMemory extends LinkRPCConnection{
     
     private closed = false;
-    private target?:RPCConnectionMemory;
+    private target?:LinkRPCConnectionMemory;
 
-    public setTarget(target:RPCConnectionMemory){
+    public setTarget(target:LinkRPCConnectionMemory){
         this.target = target;
     }
 
-    send(packet: RPCPacket): Promise<void> {
+    send(packet: LinkRPCPacket): Promise<void> {
         if(!this.target){
             throw new Error("target is not set");
         }
@@ -33,9 +33,9 @@ class RPCConnectionMemory extends RPCConnection{
     
 }
 
-const RPCProviderMemoryGlobal = new Map<number,RPCProviderMemory>();
+const LinkRPCProviderMemoryGlobal = new Map<number,LinkRPCProviderMemory>();
 
-class RPCProviderMemory extends RPCProvider{
+class LinkRPCProviderMemory extends LinkRPCProvider{
 
     private usePort?:number;
 
@@ -44,10 +44,10 @@ class RPCProviderMemory extends RPCProvider{
             throw new Error("port is required");
         }
         this.usePort = params.port;
-        if(RPCProviderMemoryGlobal.has(this.usePort)){
+        if(LinkRPCProviderMemoryGlobal.has(this.usePort)){
             throw new Error("port is used");
         }
-        RPCProviderMemoryGlobal.set(params.port,this);
+        LinkRPCProviderMemoryGlobal.set(params.port,this);
         return Promise.resolve();
     }
 
@@ -55,26 +55,26 @@ class RPCProviderMemory extends RPCProvider{
         if(!this.usePort){
             throw new Error("port is not set");
         }
-        RPCProviderMemoryGlobal.delete(this.usePort);
+        LinkRPCProviderMemoryGlobal.delete(this.usePort);
         return Promise.resolve();
     }
 
-    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<RPCConnection> {
+    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<LinkRPCConnection> {
         if(!params?.port){
             throw new Error("port is required");
         }
-        const targetProvider = RPCProviderMemoryGlobal.get(params.port);
+        const targetProvider = LinkRPCProviderMemoryGlobal.get(params.port);
         if(!targetProvider){
             throw new Error("connect filed port not found");
         }
         
-        const connection = new RPCConnectionMemory();
+        const connection = new LinkRPCConnectionMemory();
         await targetProvider.onConnect(connection);
         return connection;
     }
 
-    public async onConnect(target:RPCConnectionMemory){
-        const connection = new RPCConnectionMemory();
+    public async onConnect(target:LinkRPCConnectionMemory){
+        const connection = new LinkRPCConnectionMemory();
         connection.setTarget(target);
         target.setTarget(connection);
         this.emitter.emit('connection',connection);
@@ -83,5 +83,5 @@ class RPCProviderMemory extends RPCProvider{
 }
 
 export {
-    RPCProviderMemory
+    LinkRPCProviderMemory
 }

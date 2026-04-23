@@ -1,6 +1,6 @@
-import { RPCConnection } from "../../connection.js";
-import { RPCPacketFactory, type RPCPacket } from "../../packet.js";
-import { RPCProvider } from "../../provider.js";
+import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCPacketFactory, type LinkRPCPacket } from "../../packet.js";
+import { LinkRPCProvider } from "../../provider.js";
 import { dynamicimport } from "../../utils.js";
 
 type SupportLibSocketIO = typeof import('socket.io');
@@ -23,14 +23,14 @@ type SupportLibType = {
 }
 
 
-class RPCConnectionSocketIOServer extends RPCConnection{
+class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
 
     private closed = false;
 
     constructor(private socket:InstanceType<SupportLibSocketIO['Socket']>){
         super();
         this.socket.on('message',(data:string) => {
-            const packet = RPCPacketFactory.parsePacketFromString(data);
+            const packet = LinkRPCPacketFactory.parsePacketFromString(data);
             if(packet){
                 this.emitter.emit('receive',packet);
             }
@@ -41,7 +41,7 @@ class RPCConnectionSocketIOServer extends RPCConnection{
         })
     }
 
-    send(packet: RPCPacket): Promise<void> {
+    send(packet: LinkRPCPacket): Promise<void> {
         this.socket.emit('message',JSON.stringify(packet));
         return Promise.resolve();
     }
@@ -61,14 +61,14 @@ class RPCConnectionSocketIOServer extends RPCConnection{
     
 }
 
-class RPCConnectionSocketIOClient extends RPCConnection{
+class LinkRPCConnectionSocketIOClient extends LinkRPCConnection{
 
     private closed = false;
 
     constructor(private socket:InstanceType<SupportLibSocketIOClient['Socket']>){
         super();
         this.socket.on('message',(data:string) => {
-            const packet = RPCPacketFactory.parsePacketFromString(data);
+            const packet = LinkRPCPacketFactory.parsePacketFromString(data);
             if(packet){
                 this.emitter.emit('receive',packet);
             }
@@ -79,7 +79,7 @@ class RPCConnectionSocketIOClient extends RPCConnection{
         })
     }
 
-    send(packet: RPCPacket): Promise<void> {
+    send(packet: LinkRPCPacket): Promise<void> {
         this.socket.emit('message',JSON.stringify(packet));
         return Promise.resolve();
     }
@@ -111,7 +111,7 @@ type RPCProviderSocketIOConfig = {
     }
 }
 
-class RPCProviderSocketIO extends RPCProvider{
+class LinkRPCProviderSocketIO extends LinkRPCProvider{
 
     private config:RPCProviderSocketIOConfig;
 
@@ -202,7 +202,7 @@ class RPCProviderSocketIO extends RPCProvider{
             socket.on('disconnect',() => {
                 this.sockets.delete(socket);
             })
-            const connection = new RPCConnectionSocketIOServer(socket);
+            const connection = new LinkRPCConnectionSocketIOServer(socket);
             this.emitter.emit('connection',connection);
         })
         return server;
@@ -242,13 +242,13 @@ class RPCProviderSocketIO extends RPCProvider{
         })
     }
 
-    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<RPCConnection> {
+    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<LinkRPCConnection> {
         if(!params || !params.port){
             throw Error("params.port is required");
         }
         const client = this.initSocketIOClient(await this.createSocketIOClient(`ws://${params?.hostname||'localhost'}:${params.port}`,this.config.options?.client));
-        const connection = new RPCConnectionSocketIOClient(client);
-        return new Promise<RPCConnection>((resolve) => {
+        const connection = new LinkRPCConnectionSocketIOClient(client);
+        return new Promise<LinkRPCConnection>((resolve) => {
             client.on('connect',() => {
                 resolve(connection);
             })
@@ -258,5 +258,5 @@ class RPCProviderSocketIO extends RPCProvider{
 }
 
 export {
-    RPCProviderSocketIO
+    LinkRPCProviderSocketIO
 }

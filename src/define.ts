@@ -1,53 +1,53 @@
-type RPCAPIDefineType = Record<string,Record<string,any>>
-type RPCMethodConfig = {
+import { LinkRPCMethodListSymbol, LinkRPCMethodSymbol } from "./symbol.js";
+
+import { LinkRPCServiceSymbol } from "./symbol.js";
+
+type LinkRPCAPIDefineType = Record<string,Record<string,any>>
+type LinkRPCMethodConfig = {
     // timeout for this method
     timeout?:number | undefined;//ms
 }
 
 
-type RPCServiceConfig<T extends RPCAPIDefineType,S extends keyof T> = {
+type LinkRPCServiceConfig<T extends LinkRPCAPIDefineType,S extends keyof T> = {
     methods?:{
-        [M in keyof T[S]]?:RPCMethodConfig;
+        [M in keyof T[S]]?:LinkRPCMethodConfig;
     }
     // default timeout for all methods in this service
     timeout?:number | undefined;//ms
 }
 
-type RPCDefineConfig<T extends RPCAPIDefineType> = {
+type LinkRPCDefineConfig<T extends LinkRPCAPIDefineType> = {
     services?:{
-        [S in keyof T]?:RPCServiceConfig<T,S>;
+        [S in keyof T]?:LinkRPCServiceConfig<T,S>;
     },
     // default timeout for all services
     timeout?:number | undefined;
 }
 
-class RPCAPIDefine<T extends RPCAPIDefineType> {
+class LinkRPCAPIDefine<T extends LinkRPCAPIDefineType> {
 
-    static RPCService = Symbol('RPCService');
-    static RPCMethod = Symbol('RPCMethod');
-    static RPCMethodList = Symbol('RPCMethodList');
+    private config:LinkRPCDefineConfig<T>;
 
-    private config:RPCDefineConfig<T>;
-
-    constructor(config?:RPCDefineConfig<T>){
+    constructor(config?:LinkRPCDefineConfig<T>){
         this.config = config || {};
     }
 
     static method(){
         return  function(target:any, propertyKey:string, descriptor:PropertyDescriptor){
-            descriptor.value[RPCAPIDefine.RPCMethod] = true;
-            if(!target[RPCAPIDefine.RPCService]){
-                target[RPCAPIDefine.RPCService] = true;
+            descriptor.value[LinkRPCMethodSymbol] = true;
+            if(!target[LinkRPCServiceSymbol]){
+                target[LinkRPCServiceSymbol] = true;
             }
-            if(!target[RPCAPIDefine.RPCMethodList]){
-                target[RPCAPIDefine.RPCMethodList] = new Set<string>();
+            if(!target[LinkRPCMethodListSymbol]){
+                target[LinkRPCMethodListSymbol] = new Set<string>();
             }
-            target[RPCAPIDefine.RPCMethodList].add(propertyKey);
+            target[LinkRPCMethodListSymbol].add(propertyKey);
         }
     }
 
     static isService(target:any){
-        return target[RPCAPIDefine.RPCService] === true;
+        return target[LinkRPCServiceSymbol] === true;
     }
 
     static isMethod(method:any){
@@ -55,20 +55,20 @@ class RPCAPIDefine<T extends RPCAPIDefineType> {
         if(typeof method !== 'function'){
             return false;
         }
-        if(method[RPCAPIDefine.RPCMethod] != true){
+        if(method[LinkRPCMethodSymbol] != true){
             return false;
         }
         return true;
     }
 
     static getMethodList(service:any):string[]{
-        if(!RPCAPIDefine.isService(service)){
+        if(!LinkRPCAPIDefine.isService(service)){
             return [];
         }
-        return Array.from(service[RPCAPIDefine.RPCMethodList]);
+        return Array.from(service[LinkRPCMethodListSymbol]);
     }
 
-    resolveMethodConfig<S extends keyof T,M extends keyof T[S]>(service:S,methodName:M):RPCMethodConfig|undefined{
+    resolveMethodConfig<S extends keyof T,M extends keyof T[S]>(service:S,methodName:M):LinkRPCMethodConfig|undefined{
         const serviceConfig = this.config.services?.[service];
         const methodConfig = serviceConfig?.methods?.[methodName];
         
@@ -80,9 +80,9 @@ class RPCAPIDefine<T extends RPCAPIDefineType> {
 
 
 export {
-    type RPCAPIDefineType,
-    type RPCDefineConfig,
-    type RPCServiceConfig,
-    type RPCMethodConfig,
-    RPCAPIDefine,
+    type LinkRPCAPIDefineType,
+    type LinkRPCDefineConfig,
+    type LinkRPCServiceConfig,
+    type LinkRPCMethodConfig,
+    LinkRPCAPIDefine,
 }

@@ -1,19 +1,19 @@
 import { IdMaker } from "./utils.js";
 
-export interface RPCPacket {
+export interface LinkRPCPacket {
     id:string;
     type:string;
     meta?:{[key:string]:any};// 元数据，用于传递一些额外的信息
 }
 
-export interface RPCRequestPacket extends RPCPacket {
+export interface LinkRPCRequestPacket extends LinkRPCPacket {
     type:'request';
     serviceName:string;
     methodName:string;
     args:any[];
 }
 
-export interface RPCResponsePacket extends RPCPacket {
+export interface LinkRPCResponsePacket extends LinkRPCPacket {
     type:'response';
     requestId:string;
     result?:any;
@@ -22,7 +22,7 @@ export interface RPCResponsePacket extends RPCPacket {
 
 
 
-export class RPCPacketFactory {
+export class LinkRPCPacketFactory {
 
     static createID():string{
         return IdMaker.makeId();
@@ -32,9 +32,9 @@ export class RPCPacketFactory {
         serviceName:string,
         methodName:string,
         args:any[]
-    }):RPCRequestPacket{
+    }):LinkRPCRequestPacket{
         return {
-            id:RPCPacketFactory.createID(),
+            id:LinkRPCPacketFactory.createID(),
             type:'request',
             serviceName:data.serviceName,
             methodName:data.methodName,
@@ -46,9 +46,9 @@ export class RPCPacketFactory {
         requestId:string,
         result?:any,
         error?:any,
-    }):RPCResponsePacket{
+    }):LinkRPCResponsePacket{
         return {
-            id:RPCPacketFactory.createID(),
+            id:LinkRPCPacketFactory.createID(),
             type:'response',
             requestId:data.requestId,
             result:data.result,
@@ -56,32 +56,32 @@ export class RPCPacketFactory {
         }
     }
 
-    static isPacket(data:any):data is RPCPacket{
+    static isPacket(data:any):data is LinkRPCPacket{
         return data && typeof data === 'object' && 'id' in data && 'type' in data;
     }
 
-    static isRequestPacket(data:any):data is RPCRequestPacket{
-        if(!RPCPacketFactory.isPacket(data)){
+    static isRequestPacket(data:any):data is LinkRPCRequestPacket{
+        if(!LinkRPCPacketFactory.isPacket(data)){
             return false;
         }
         return data.type === 'request';
     }
 
-    static isResponsePacket(data:any):data is RPCResponsePacket{
-        if(!RPCPacketFactory.isPacket(data)){
+    static isResponsePacket(data:any):data is LinkRPCResponsePacket{
+        if(!LinkRPCPacketFactory.isPacket(data)){
             return false;
         }
         return data.type === 'response';
     }
 
-    static parsePacketFromString(data:string):RPCPacket|undefined{
+    static parsePacketFromString(data:string):LinkRPCPacket|undefined{
         let packet:any;
         try{
             packet = JSON.parse(data);
         }catch(e){
             return;
         }
-        if(!RPCPacketFactory.isPacket(packet)){
+        if(!LinkRPCPacketFactory.isPacket(packet)){
             return;
         }
         return packet;

@@ -1,9 +1,9 @@
-import type { RPCAPIDefine, RPCAPIDefineType } from "./define.js";
-import type { RPCRequestPacket, RPCResponsePacket } from "./packet.js";
-import type { RPCDefineToRPCAPI } from "./utils.js";
+import type { LinkRPCAPIDefine, LinkRPCAPIDefineType } from "./define.js";
+import type { LinkRPCRequestPacket, LinkRPCResponsePacket } from "./packet.js";
+import type { LinkRPCDefineToRPCAPI } from "./utils.js";
 
 
-class RPCAPI<T extends RPCAPIDefine<RPCAPIDefineType>>{
+class LinkRPCAPI<T extends LinkRPCAPIDefine<LinkRPCAPIDefineType>>{
     constructor(){
         
     }
@@ -13,9 +13,9 @@ class RPCAPI<T extends RPCAPIDefine<RPCAPIDefineType>>{
         methodName:string,
         args:any[]
     }) => Promise<{
-        request:RPCRequestPacket,
-        response:RPCResponsePacket,
-    }>):RPCDefineToRPCAPI<T>{
+        request:LinkRPCRequestPacket,
+        response:LinkRPCResponsePacket,
+    }>):LinkRPCDefineToRPCAPI<T>{
         return new Proxy({}, {
             get(target, serviceName, receiver) {
                 if (typeof serviceName !== 'string') {
@@ -44,8 +44,8 @@ class RPCAPI<T extends RPCAPIDefine<RPCAPIDefineType>>{
                             },
                             request:async (config:{
                                 args?:any[],
-                                callback?:(result:any,req:RPCRequestPacket,res:RPCResponsePacket) => void,
-                                error?:(error:any,req:RPCRequestPacket,res:RPCResponsePacket) => void,
+                                callback?:(result:any,req:LinkRPCRequestPacket,res:LinkRPCResponsePacket) => void,
+                                error?:(error:any,req:LinkRPCRequestPacket,res:LinkRPCResponsePacket) => void,
                             }) => {
                                 const result = await callback({
                                     serviceName:serviceName,
@@ -64,11 +64,11 @@ class RPCAPI<T extends RPCAPIDefine<RPCAPIDefineType>>{
                     }
                 });
             }
-        }) as RPCDefineToRPCAPI<T>;
+        }) as LinkRPCDefineToRPCAPI<T>;
     }
 }
 
 
 export {
-    RPCAPI
+    LinkRPCAPI
 }

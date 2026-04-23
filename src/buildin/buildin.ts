@@ -1,22 +1,22 @@
-import { RPCProviderHTTP } from "./connections/RPCProviderHTTP.js"
-import { RPCProviderMemory } from "./connections/RPCProviderMemory.js"
-import { RPCProviderSocket } from "./connections/RPCProviderSocket.js"
-import { RPCProviderSocketIO } from "./connections/RPCProviderSocketIO.js"
-import { RPCMiddlewareEssential } from "./middlewares/RPCMiddlewareEssential.js"
+import { LinkRPCProviderHTTP } from "./connections/LinkRPCProviderHTTP.js"
+import { LinkRPCProviderMemory } from "./connections/LinkRPCProviderMemory.js"
+import { LinkRPCProviderSocket } from "./connections/LinkRPCProviderSocket.js"
+import { LinkRPCProviderSocketIO } from "./connections/LinkRPCProviderSocketIO.js"
+import { LinkRPCMiddlewareEssential } from "./middlewares/LinkRPCMiddlewareEssential.js"
 
-const RPCBuildin = {
+const LinkRPCBuildin = {
     provider:{
-        default:RPCProviderHTTP,
-        http:RPCProviderHTTP,
-        memory:RPCProviderMemory,
-        socket:RPCProviderSocket,
-        socketIO:RPCProviderSocketIO,
+        default:LinkRPCProviderHTTP,
+        http:LinkRPCProviderHTTP,
+        memory:LinkRPCProviderMemory,
+        socket:LinkRPCProviderSocket,
+        socketIO:LinkRPCProviderSocketIO,
     },
     middleware:{
-        essential:RPCMiddlewareEssential,
+        essential:LinkRPCMiddlewareEssential,
     }
 }
 
 export{
-    RPCBuildin
+    LinkRPCBuildin
 }

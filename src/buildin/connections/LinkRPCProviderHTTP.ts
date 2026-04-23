@@ -1,6 +1,6 @@
-import { RPCConnection } from "../../connection.js";
-import { RPCPacketFactory, type RPCPacket } from "../../packet.js";
-import { RPCProvider } from "../../provider.js";
+import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCPacketFactory, type LinkRPCPacket } from "../../packet.js";
+import { LinkRPCProvider } from "../../provider.js";
 import { dynamicimport } from "../../utils.js";
 
 type Protocol = 'http' | 'https';
@@ -13,7 +13,7 @@ type SupportLib = {
     fetch?: Promise<typeof fetch | undefined>,
 }
 
-class RPCConnectionHTTP extends RPCConnection{
+class LinkRPCConnectionHTTP extends LinkRPCConnection{
     
     private closed = false;
 
@@ -33,7 +33,7 @@ class RPCConnectionHTTP extends RPCConnection{
         super();
     }
 
-    async send(packet: RPCPacket): Promise<void> {
+    async send(packet: LinkRPCPacket): Promise<void> {
         if(this.isClosed()){
             throw new Error('connection is closed');
         }
@@ -54,7 +54,7 @@ class RPCConnectionHTTP extends RPCConnection{
             }).then((res) => {
                 return res.text();
             })
-            const responsePacket = RPCPacketFactory.parsePacketFromString(response);
+            const responsePacket = LinkRPCPacketFactory.parsePacketFromString(response);
             if(responsePacket){
                 this.emitter.emit('receive',responsePacket);
             }
@@ -85,7 +85,7 @@ type LinkRPCProviderHTTPConfig = {
     },
 }
 
-class RPCProviderHTTP extends RPCProvider{
+class LinkRPCProviderHTTP extends LinkRPCProvider{
 
     private defaultProtocol: Protocol = 'http';
     public config: LinkRPCProviderHTTPConfig;
@@ -153,11 +153,11 @@ class RPCProviderHTTP extends RPCProvider{
                 }catch(e){
                     return;
                 }
-                if(!RPCPacketFactory.isPacket(packet)){
+                if(!LinkRPCPacketFactory.isPacket(packet)){
                     return;
                 }
 
-                const connection = new RPCConnectionHTTP({
+                const connection = new LinkRPCConnectionHTTP({
                     side:'server',
                     protocol:this.config.protocol || this.defaultProtocol,
                     req:req,
@@ -222,7 +222,7 @@ class RPCProviderHTTP extends RPCProvider{
         })
     }
 
-    async connect(params?: { hostname?: string; port?: number; }): Promise<RPCConnection> {
+    async connect(params?: { hostname?: string; port?: number; }): Promise<LinkRPCConnection> {
         if(!params || !params.port){
             throw new Error("connect requires port");
         }
@@ -232,7 +232,7 @@ class RPCProviderHTTP extends RPCProvider{
         if(!fetchSupport){
             throw new Error("fetch module not found, try set config.lib.fetch to import('fetch') or install fetch module");
         }
-        const connection = new RPCConnectionHTTP({
+        const connection = new LinkRPCConnectionHTTP({
             side:'client',
             protocol:this.config.protocol || this.defaultProtocol,
             target:{
@@ -247,5 +247,5 @@ class RPCProviderHTTP extends RPCProvider{
 }
 
 export {
-    RPCProviderHTTP
+    LinkRPCProviderHTTP
 }

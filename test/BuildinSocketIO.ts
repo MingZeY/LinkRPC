@@ -1,5 +1,4 @@
-import type { RPCConnection } from "../src/connection.js";
-import { LinkRPCAPIDefine, LinkRPCBuildin, LinkRPCClient, LinkRPCServer } from "../src/index.js";
+import { LinkRPCAPIDefine, LinkRPCBuildin, LinkRPCClient, LinkRPCConnection, LinkRPCServer } from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
 export default class TestBuildinSocketIO extends TestCase{
@@ -34,7 +33,7 @@ export default class TestBuildinSocketIO extends TestCase{
             },
         })
         
-        let connectionToClient = new Promise<RPCConnection>((resolve) => {
+        let connectionToClient = new Promise<LinkRPCConnection>((resolve) => {
             server.emitter.once('connection',(connection) => {
                 resolve(connection);
             })

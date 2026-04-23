@@ -1,5 +1,5 @@
-import type { RPCAPIDefine } from "./define.js";
-import type { RPCRequestPacket, RPCResponsePacket } from "./packet.js";
+import type { LinkRPCAPIDefine } from "./define.js";
+import type { LinkRPCRequestPacket, LinkRPCResponsePacket } from "./packet.js";
 
 export type FunctionTypeToPromiseFunctionType<T extends (...args: any[]) => any> =
   T extends (...args: infer P) => Promise<infer R> ?
@@ -9,7 +9,7 @@ export type FunctionTypeToPromiseFunctionType<T extends (...args: any[]) => any>
   : never
   ;
 
-export type RPCDefineToRPCAPI<T extends RPCAPIDefine<any>> = T extends RPCAPIDefine<infer U> ?
+export type LinkRPCDefineToRPCAPI<T extends LinkRPCAPIDefine<any>> = T extends LinkRPCAPIDefine<infer U> ?
   {
     [S in keyof U]: {
       [M in keyof U[S]]: {
@@ -19,8 +19,8 @@ export type RPCDefineToRPCAPI<T extends RPCAPIDefine<any>> = T extends RPCAPIDef
         request: (config: {
           args: Parameters<U[S][M]>,
           timeout?: number,
-          callback?: (result: ReturnType<U[S][M]>, req: RPCRequestPacket, res: RPCResponsePacket) => void,
-          error?: (error: any, req: RPCRequestPacket, res: RPCResponsePacket) => void,
+          callback?: (result: ReturnType<U[S][M]>, req: LinkRPCRequestPacket, res: LinkRPCResponsePacket) => void,
+          error?: (error: any, req: LinkRPCRequestPacket, res: LinkRPCResponsePacket) => void,
         }) => string,
         id: string,
         /** 获取方法路径 */
@@ -30,10 +30,10 @@ export type RPCDefineToRPCAPI<T extends RPCAPIDefine<any>> = T extends RPCAPIDef
   }
   : never;
 
-export type RPCDefineServiceName<T extends RPCAPIDefine<any>> = T extends RPCAPIDefine<infer U> ? keyof U & string : never;
-export type RPCDefineMethodName<T extends RPCAPIDefine<any>, S extends RPCDefineServiceName<T>> = T extends RPCAPIDefine<infer U> ? keyof U[S] & string : never;
-export type RPCDefineMethodBody<T extends RPCAPIDefine<any>, S extends RPCDefineServiceName<T>, M extends RPCDefineMethodName<T, S>> = T extends RPCAPIDefine<infer U> ? U[S][M] : never;
-export type RPCDefineServiceInstance<T extends RPCAPIDefine<any>, S extends RPCDefineServiceName<T>> = T extends RPCAPIDefine<infer U> ? U[S] : never;
+export type LinkRPCDefineServiceName<T extends LinkRPCAPIDefine<any>> = T extends LinkRPCAPIDefine<infer U> ? keyof U & string : never;
+export type LinkRPCDefineMethodName<T extends LinkRPCAPIDefine<any>, S extends LinkRPCDefineServiceName<T>> = T extends LinkRPCAPIDefine<infer U> ? keyof U[S] & string : never;
+export type LinkRPCDefineMethodBody<T extends LinkRPCAPIDefine<any>, S extends LinkRPCDefineServiceName<T>, M extends LinkRPCDefineMethodName<T, S>> = T extends LinkRPCAPIDefine<infer U> ? U[S][M] : never;
+export type LinkRPCDefineServiceInstance<T extends LinkRPCAPIDefine<any>, S extends LinkRPCDefineServiceName<T>> = T extends LinkRPCAPIDefine<infer U> ? U[S] : never;
 
 
 export type TypedEmitterEvents = {

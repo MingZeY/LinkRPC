@@ -1,20 +1,20 @@
-import type { RPCPacket } from "./packet.js";
+import type { LinkRPCPacket } from "./packet.js";
 import { TypedEmitter } from "./utils.js";
 
 
-type RPCConnectionEvents = {
+type LinkRPCConnectionEvents = {
     /** when connection receive a packet */
-    receive:(packet:RPCPacket) => void;
+    receive:(packet:LinkRPCPacket) => void;
     /** when connection closed */
     closed:() => void;
 }
 
-abstract class RPCConnection{
+abstract class LinkRPCConnection{
 
-    public emitter = new TypedEmitter<RPCConnectionEvents>();
+    public emitter = new TypedEmitter<LinkRPCConnectionEvents>();
 
     /** send a packet through connection */
-    abstract send(packet:RPCPacket):Promise<void>;
+    abstract send(packet:LinkRPCPacket):Promise<void>;
     /** close connection and release all resources */
     abstract close():Promise<void>;
     /** check if connection is closed */
@@ -25,5 +25,5 @@ abstract class RPCConnection{
 
 
 export {
-    RPCConnection
+    LinkRPCConnection
 }

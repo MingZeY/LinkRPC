@@ -1,14 +1,14 @@
-import { RPCAPI } from "./api.js";
-import { RPCBuildin } from "./buildin/buildin.js";
-import type { RPCConnection } from "./connection.js";
-import type { RPCContext } from "./context.js";
-import type { RPCAPIDefine } from "./define.js";
-import { RPCHandler } from "./handler.js";
-import type { RPCMiddleware } from "./middleware.js";
-import { RPCPacketFactory, type RPCPacket, type RPCRequestPacket, type RPCResponsePacket } from "./packet.js";
-import { TypedEmitter, type RPCDefineToRPCAPI } from "./utils.js";
+import { LinkRPCAPI } from "./api.js";
+import { LinkRPCBuildin } from "./buildin/buildin.js";
+import type { LinkRPCConnection } from "./connection.js";
+import type { LinkRPCContext } from "./context.js";
+import type { LinkRPCAPIDefine } from "./define.js";
+import { LinkRPCHandler } from "./handler.js";
+import type { LinkRPCMiddleware } from "./middleware.js";
+import { LinkRPCPacketFactory, type LinkRPCPacket, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
+import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
 
-type RPCCoreEvents = {
+type LinkRPCCoreEvents = {
 
 
 
@@ -18,39 +18,39 @@ type RPCCoreEvents = {
  * RPC核心类，处理连接、请求、响应和中间件处理，主要采用事件驱动模式
  * 
  */
-class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
+class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any>> {
 
     private destroyed = false;
-    public emitter = new TypedEmitter<RPCCoreEvents>();
-    private onConnectionReciveEventHandler: (packet: RPCPacket) => void;
+    public emitter = new TypedEmitter<LinkRPCCoreEvents>();
+    private onConnectionReciveEventHandler: (packet: LinkRPCPacket) => void;
 
 
     public requestContextRecords = new Map</* requestId */string,{
-        context:RPCContext,
-        resolve: (context:RPCContext) => void,
+        context:LinkRPCContext,
+        resolve: (context:LinkRPCContext) => void,
         reject: (e:Error) => void
     }>();
 
-    public connection:RPCConnection;
-    public handler:RPCHandler;
-    public middlewares:RPCMiddleware[];
+    public connection:LinkRPCConnection;
+    public handler:LinkRPCHandler;
+    public middlewares:LinkRPCMiddleware[];
     public define:{
         local?:L | undefined,
         remote?:R | undefined,
     }
 
     constructor(params:{
-        connection:RPCConnection,
-        handler?:RPCHandler
-        middlewares?:RPCMiddleware[],
+        connection:LinkRPCConnection,
+        handler?:LinkRPCHandler
+        middlewares?:LinkRPCMiddleware[],
         define?:{
             local?:L | undefined,
             remote?:R | undefined,
         }
     }) {
         this.connection = params.connection;
-        this.handler = params.handler || new RPCHandler();
-        this.middlewares = params.middlewares || [new RPCBuildin.middleware.essential() ];
+        this.handler = params.handler || new LinkRPCHandler();
+        this.middlewares = params.middlewares || [new LinkRPCBuildin.middleware.essential() ];
         this.define = params.define || {};
         this.onConnectionReciveEventHandler = this.onConnectionRevice.bind(this);
         this.initEvents();
@@ -61,10 +61,10 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
     }
 
     /** 包进站 */
-    private async onConnectionRevice(inboundPacket: RPCPacket) {
-        let context: RPCContext | undefined = undefined;
+    private async onConnectionRevice(inboundPacket: LinkRPCPacket) {
+        let context: LinkRPCContext | undefined = undefined;
         // 关联 context
-        if(RPCPacketFactory.isResponsePacket(inboundPacket)){
+        if(LinkRPCPacketFactory.isResponsePacket(inboundPacket)){
             const record = this.requestContextGet(inboundPacket.requestId);
             if(record){
                 context = record.context;
@@ -77,8 +77,8 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
             context = {
                 core:this,
                 inbound:inboundPacket,
-                request:RPCPacketFactory.isRequestPacket(inboundPacket) ? inboundPacket : undefined,
-                response:RPCPacketFactory.isResponsePacket(inboundPacket) ? inboundPacket : undefined,
+                request:LinkRPCPacketFactory.isRequestPacket(inboundPacket) ? inboundPacket : undefined,
+                response:LinkRPCPacketFactory.isResponsePacket(inboundPacket) ? inboundPacket : undefined,
             }
         }
 
@@ -103,7 +103,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
     }
 
 
-    private async throughMiddleware(context: RPCContext,direction:'inbound'|'outbound', index?: number | undefined): Promise<RPCContext> {
+    private async throughMiddleware(context: LinkRPCContext,direction:'inbound'|'outbound', index?: number | undefined): Promise<LinkRPCContext> {
         if (index == undefined) {
             index = 0;
         }
@@ -115,7 +115,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
         }
 
         let executedNextByMiddleware = false;
-        const nextFn:((context:RPCContext) => Promise<RPCContext>) = async (context) => {
+        const nextFn:((context:LinkRPCContext) => Promise<LinkRPCContext>) = async (context) => {
             if(direction == 'inbound'){
                 context = await this.throughMiddleware(context,direction,index + 1);
             }else if(direction == 'outbound'){
@@ -230,14 +230,14 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
     //     record.resolve(responsePacket);
     // }
 
-    public async request(request:RPCRequestPacket,options?:{
+    public async request(request:LinkRPCRequestPacket,options?:{
         timeout?:number
-    }): Promise<RPCResponsePacket>{
+    }): Promise<LinkRPCResponsePacket>{
 
         const requestId = request.id;
 
         // 创建请求context
-        let context:RPCContext = {
+        let context:LinkRPCContext = {
             core:this,
             request:request,
         }
@@ -248,7 +248,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
         // 设置超时
         const requestTimeout = options?.timeout || 10 * 1000;
         let timeoutRejecter = setTimeout(() => {
-            context.response = RPCPacketFactory.createResponsePacket({
+            context.response = LinkRPCPacketFactory.createResponsePacket({
                 requestId:requestId,
                 error:`request timeout after ${requestTimeout}`
             })
@@ -263,7 +263,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
             if(context.response){
                 this.requestContextResolve(requestId,context);
             }else{
-                context.response = RPCPacketFactory.createResponsePacket({
+                context.response = LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestId,
                     error:`Invalid request intercepted by middleware`
                 })
@@ -271,7 +271,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
             }
         }else{
             // 发送请求
-            await context.core.connection.send(context.outbound).catch(e => {
+            await context.core.connection.send(context.outbound).catch((e:Error) => {
                 console.error('Failed to send outbound packet:', e);
             });
         }
@@ -284,27 +284,27 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
             if(context.response){
                 return context.response;
             }else{
-                return RPCPacketFactory.createResponsePacket({
+                return LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestId,
                     error:'empty response'
                 })
             }
         }).catch((e) => {
-            return RPCPacketFactory.createResponsePacket({
+            return LinkRPCPacketFactory.createResponsePacket({
                 requestId:requestId,
                 error:e instanceof Error ? e.message : `${e}`
             })
         })
     }
 
-    public requestContextRecord(requestId:string,context:RPCContext):Promise<RPCContext>{
+    public requestContextRecord(requestId:string,context:LinkRPCContext):Promise<LinkRPCContext>{
         if(!context.request){
             throw new Error('require context.request')
         }
         if(requestId != context.request.id){
             throw new Error('requestId not match context.request.id');
         }
-        const contextPromise = new Promise<RPCContext>((resolve,reject) => {
+        const contextPromise = new Promise<LinkRPCContext>((resolve,reject) => {
             this.requestContextRecords.set(requestId,{
                 context:context,
                 resolve:resolve,
@@ -318,7 +318,7 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
         return this.requestContextRecords.get(requestId);
     }
 
-    public requestContextResolve(requestId:string,context:RPCContext){
+    public requestContextResolve(requestId:string,context:LinkRPCContext){
         const record = this.requestContextGet(requestId);
         if(!record){
             return;
@@ -328,17 +328,17 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
     }
 
 
-    public getAPI(): RPCDefineToRPCAPI<R> {
-        const api = new RPCAPI<R>();
+    public getAPI(): LinkRPCDefineToRPCAPI<R> {
+        const api = new LinkRPCAPI<R>();
         return api.interface(async (params) => {
             const methodConfig = this.define.remote?.resolveMethodConfig(params.serviceName, params.methodName);
-            const requestPacket = RPCPacketFactory.createRequestPacket({
+            const requestPacket = LinkRPCPacketFactory.createRequestPacket({
                 serviceName: params.serviceName,
                 methodName: params.methodName,
                 args: params.args,
             })
             const responsePacket = await this.request(requestPacket).catch((e) => {
-                return RPCPacketFactory.createResponsePacket({
+                return LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestPacket.id,
                     error:e instanceof Error ? e.message : `error:${e}`,
                 })
@@ -361,5 +361,5 @@ class RPCCore<L extends RPCAPIDefine<any>,R extends RPCAPIDefine<any>> {
 }
 
 export {
-    RPCCore
+    LinkRPCCore
 }

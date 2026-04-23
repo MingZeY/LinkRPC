@@ -1,19 +1,20 @@
-import { RPCContextSymbol, type RPCContext } from "./context.js";
-import { RPCPacketFactory, type RPCPacket, type RPCRequestPacket, type RPCResponsePacket } from "./packet.js";
+import type { LinkRPCContext } from "./context.js";
+import { LinkRPCPacketFactory, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
+import { LinkRPCContextSymbol } from "./symbol.js";
 import { TypedEmitter } from "./utils.js";
 
 
 
-type RPCHandlerEvents = {
+type LinkRPCHandlerEvents = {
     
 }
 /**
  * 处理所有LinkRPC数据包，将 request packet 调用对应的 hook 转为 response packet
  * 并混合 Context 功能
  */
-class RPCHandler{
+class LinkRPCHandler{
 
-    public emitter = new TypedEmitter<RPCHandlerEvents>();
+    public emitter = new TypedEmitter<LinkRPCHandlerEvents>();
 
     private hooks:Record<string,Record<string,{
         handler:(...args:any[])=>any,
@@ -55,7 +56,7 @@ class RPCHandler{
         delete this.hooks[serviceName]![methodName];
     }
 
-    public async handle(request:RPCRequestPacket,context?:RPCContext):Promise<RPCResponsePacket>{
+    public async handle(request:LinkRPCRequestPacket,context?:LinkRPCContext):Promise<LinkRPCResponsePacket>{
         const service = this.hooks[request.serviceName];
         if(!service){
             throw new Error(`Service ${request.serviceName} not found.`);
@@ -66,13 +67,13 @@ class RPCHandler{
         }
         const result = await hook.handler.call(new Proxy(hook.bind || {},{
             get(target,prop){
-                if(prop === RPCContextSymbol){
+                if(prop === LinkRPCContextSymbol){
                     return context;
                 }
                 return Reflect.get(target,prop);
             }
         }),...request.args);
-        const response = RPCPacketFactory.createResponsePacket({
+        const response = LinkRPCPacketFactory.createResponsePacket({
             requestId:request.id,
             result:result,
         });
@@ -83,5 +84,5 @@ class RPCHandler{
 }
 
 export {
-    RPCHandler,
+    LinkRPCHandler,
 }

@@ -1,6 +1,6 @@
-import { RPCConnection } from "../../connection.js";
-import { RPCPacketFactory, type RPCPacket } from "../../packet.js";
-import { RPCProvider } from "../../provider.js";
+import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCPacketFactory, type LinkRPCPacket } from "../../packet.js";
+import { LinkRPCProvider } from "../../provider.js";
 import { dynamicimport } from "../../utils.js";
 
 type SupportLibNet = typeof import('net');
@@ -8,7 +8,7 @@ type SupportLib = {
     net?:Promise<SupportLibNet>
 }
 
-class RPCConnectionSocket extends RPCConnection{
+class LinkRPCConnectionSocket extends LinkRPCConnection{
 
     constructor(
         private socket:InstanceType<SupportLibNet['Socket']>
@@ -19,7 +19,7 @@ class RPCConnectionSocket extends RPCConnection{
         })
     }
 
-    send(packet: RPCPacket): Promise<void> {
+    send(packet: LinkRPCPacket): Promise<void> {
         const buffer = Buffer.from(JSON.stringify(packet));
         const length = Buffer.alloc(4);
         length.writeUInt32BE(buffer.length,0);
@@ -48,7 +48,7 @@ type LinkRPCConnectionProviderSocketConfig = {
 }
 
 
-class RPCProviderSocket extends RPCProvider{
+class LinkRPCProviderSocket extends LinkRPCProvider{
 
     private sockets:Set<InstanceType<SupportLibNet['Socket']>> = new Set();
 
@@ -89,8 +89,8 @@ class RPCProviderSocket extends RPCProvider{
         })
     }
 
-    private createConnection(socket:InstanceType<SupportLibNet['Socket']>):RPCConnectionSocket{
-        const connection = new RPCConnectionSocket(socket);
+    private createConnection(socket:InstanceType<SupportLibNet['Socket']>):LinkRPCConnectionSocket{
+        const connection = new LinkRPCConnectionSocket(socket);
 
         let buffer = Buffer.alloc(0);
         let expectedLength: number | null = null;
@@ -110,7 +110,7 @@ class RPCProviderSocket extends RPCProvider{
                     expectedLength = null;
 
                     // 处理消息
-                    const packet = RPCPacketFactory.parsePacketFromString(message);
+                    const packet = LinkRPCPacketFactory.parsePacketFromString(message);
                     if(packet){
                         connection.emitter.emit('receive',packet);
                     }
@@ -152,7 +152,7 @@ class RPCProviderSocket extends RPCProvider{
         })
     }
 
-    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<RPCConnection> {
+    async connect(params?: { hostname?: string | undefined; port?: number | undefined; }): Promise<LinkRPCConnection> {
 
         const netSupport = await this.config.lib?.net;
         if(!netSupport){
@@ -178,5 +178,5 @@ class RPCProviderSocket extends RPCProvider{
 }
 
 export{
-    RPCProviderSocket,
+    LinkRPCProviderSocket,
 }

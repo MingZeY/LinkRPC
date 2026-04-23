@@ -1,5 +1,4 @@
-import { RPCBuildin } from "../src/buildin/buildin.js";
-import { LinkRPCAPIDefine, LinkRPCClient, LinkRPCServer } from "../src/index.js";
+import { LinkRPCAPIDefine, LinkRPCBuildin, LinkRPCClient, LinkRPCServer } from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
 export default class TestClient extends TestCase{
@@ -15,7 +14,7 @@ export default class TestClient extends TestCase{
 
         const server = new LinkRPCServer({
             local:define,
-            provider:new RPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.memory()
         });
         server.hook('math','add',{
             handler(a, b) {
@@ -26,7 +25,7 @@ export default class TestClient extends TestCase{
 
         const client = new LinkRPCClient({
             remote:define,
-            provider:new RPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.memory()
         })
         const connection = await client.connect({port:1});
         const api = client.getAPI(connection);

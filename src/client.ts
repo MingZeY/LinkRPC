@@ -1,40 +1,40 @@
 
-import { RPCConnection } from "./connection.js";
-import { RPCCore } from "./core.js";
-import { RPCAPIDefine, type RPCAPIDefineType } from "./define.js";
-import type { RPCProvider } from "./provider.js";
-import { TypedEmitter, type RPCDefineMethodBody, type RPCDefineMethodName, type RPCDefineServiceInstance, type RPCDefineServiceName, type RPCDefineToRPCAPI } from "./utils.js";
-import { RPCHandler } from "./handler.js";
-import type { RPCMiddleware } from "./middleware.js";
-import { RPCBuildin } from "./buildin/buildin.js";
+import { LinkRPCConnection } from "./connection.js";
+import { LinkRPCCore } from "./core.js";
+import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
+import type { LinkRPCProvider } from "./provider.js";
+import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js";
+import { LinkRPCHandler } from "./handler.js";
+import type { LinkRPCMiddleware } from "./middleware.js";
+import { LinkRPCBuildin } from "./buildin/buildin.js";
 
 
 
-type RPCClientConfig<L extends RPCAPIDefine<RPCAPIDefineType>,R extends RPCAPIDefine<RPCAPIDefineType>> = {
+type LinkRPCClientConfig<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> = {
     local?:L,
     remote?:R,
-    provider?:RPCProvider,
+    provider?:LinkRPCProvider,
 }
 
-type RPCClientEvents = {
-    connection:(connection:RPCConnection) => void,
+type LinkRPCClientEvents = {
+    connection:(connection:LinkRPCConnection) => void,
 }
 
-class RPCClient<L extends RPCAPIDefine<RPCAPIDefineType>,R extends RPCAPIDefine<RPCAPIDefineType>> {
+class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> {
 
-    public emitter = new TypedEmitter<RPCClientEvents>();
+    public emitter = new TypedEmitter<LinkRPCClientEvents>();
     public define:{
         local?:L | undefined,
         remote?:R | undefined,
     }
 
-    public handler:RPCHandler = new RPCHandler();
-    public provider:RPCProvider;
-    public middlewares:RPCMiddleware[] = [];
+    public handler:LinkRPCHandler = new LinkRPCHandler();
+    public provider:LinkRPCProvider;
+    public middlewares:LinkRPCMiddleware[] = [];
 
-    constructor(config?:RPCClientConfig<L,R>){
-        const defaultConfig:RPCClientConfig<L,R> = {
-            provider:new RPCBuildin.provider.default(),
+    constructor(config?:LinkRPCClientConfig<L,R>){
+        const defaultConfig:LinkRPCClientConfig<L,R> = {
+            provider:new LinkRPCBuildin.provider.default(),
         }
         config = {...defaultConfig,...config};
         this.define = {
@@ -45,13 +45,13 @@ class RPCClient<L extends RPCAPIDefine<RPCAPIDefineType>,R extends RPCAPIDefine<
             throw new Error("Provider is undefined");
         }
         this.provider = config.provider;
-        this.middlewares.push(new RPCBuildin.middleware.essential());
+        this.middlewares.push(new LinkRPCBuildin.middleware.essential());
         this.initEvents();
     }
 
     private initEvents(){
         this.provider.emitter.on('connection',(connection) => {
-            const core = new RPCCore({
+            const core = new LinkRPCCore({
                 connection,
                 handler:this.handler,
                 middlewares:this.middlewares,
@@ -64,30 +64,30 @@ class RPCClient<L extends RPCAPIDefine<RPCAPIDefineType>,R extends RPCAPIDefine<
         })
     }
 
-    public hook<S extends RPCDefineServiceName<L>,M extends RPCDefineMethodName<L,S>>(serviceName:S,methodName:M,config:{
-        handler:RPCDefineMethodBody<L,S,M>,
+    public hook<S extends LinkRPCDefineServiceName<L>,M extends LinkRPCDefineMethodName<L,S>>(serviceName:S,methodName:M,config:{
+        handler:LinkRPCDefineMethodBody<L,S,M>,
         bind?:any,
     }){
         this.handler.hook(serviceName,methodName,config);
     }
 
-    public hookService<S extends RPCDefineServiceName<L>>(serviceName:S,instance:RPCDefineServiceInstance<L,S>){
-        const methodList = RPCAPIDefine.getMethodList(instance);
+    public hookService<S extends LinkRPCDefineServiceName<L>>(serviceName:S,instance:LinkRPCDefineServiceInstance<L,S>){
+        const methodList = LinkRPCAPIDefine.getMethodList(instance);
         for(let methodName of methodList){
-            this.hook(serviceName,methodName as RPCDefineMethodName<L,S>,{
+            this.hook(serviceName,methodName as LinkRPCDefineMethodName<L,S>,{
                 handler:instance[methodName],
                 bind:instance,
             })
         }
     }
 
-    public use(middleware:RPCMiddleware){
+    public use(middleware:LinkRPCMiddleware){
         this.middlewares.push(middleware);
     }
 
 
-    public getAPI(connection:RPCConnection):RPCDefineToRPCAPI<R>{
-        const core = new RPCCore({
+    public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
+        const core = new LinkRPCCore({
             connection,
             handler:this.handler,
             middlewares:this.middlewares,
@@ -102,12 +102,12 @@ class RPCClient<L extends RPCAPIDefine<RPCAPIDefineType>,R extends RPCAPIDefine<
     public async connect(params?:{
         port?:number,
         hostname?:string
-    }):Promise<RPCConnection>{
+    }):Promise<LinkRPCConnection>{
         return this.provider.connect(params);
     }
 
 }
 
 export {
-    RPCClient,
+    LinkRPCClient,
 }
