@@ -362,6 +362,14 @@ class LinkRPCCoreHub<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<
         return this.cores.get(connection);
     }
 
+    public getCores():LinkRPCCore<L,R>[]{
+        return Array.from(this.cores.values());
+    }
+
+    public getConnections():LinkRPCConnection[]{
+        return Array.from(this.cores.keys());
+    }
+
     public use(middleware:LinkRPCMiddleware){
         this.middlewares.push(middleware);
     }
