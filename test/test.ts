@@ -9,6 +9,7 @@ const testList = [
     import('./BuildinSocketIO.js'),
     import('./Middleware.js'),
     import('./Context.js'),
+    import('./Connection.js'),
 ]
 
 const tests:Array<TestCase> = [];

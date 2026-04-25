@@ -125,7 +125,7 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
         let executedNextByMiddleware = false;
         const nextFn:((context:LinkRPCContext) => Promise<LinkRPCContext>) = async (context) => {
-            if(!index){
+            if(index == undefined){
                 throw new Error("index is undefined");
             }
             if(direction == 'inbound'){
