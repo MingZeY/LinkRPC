@@ -79,6 +79,42 @@ export default class TestBuildinSocketIO extends TestCase{
             handler:() => requestToClient == "pong",
         })
 
+        // 关闭流程
+        const connectionToServerOnClose = connectionToServer.then((connection) => {
+            return new Promise<boolean>((resolve) => {
+                const timeout = setTimeout(() => {
+                    resolve(false);
+                },1000)
+                connection.emitter.once('closed',() => {
+                    clearTimeout(timeout);
+                    resolve(true);
+                })
+            })
+        })
+
+        const connectionToClientOnClose = connectionToClient.then((connection) => {
+            return new Promise<boolean>((resolve) => {
+                const timeout = setTimeout(() => {
+                    resolve(false);
+                },1000)
+                connection.emitter.once('closed',() => {
+                    clearTimeout(timeout);
+                    resolve(true);
+                })
+            })
+        })
+        connectionToServer.then(c => c.close());
+
+        await this.asert({
+            handler:async() => await connectionToServerOnClose,
+            desc:"connectionToServer not closed",
+        })
+
+        await this.asert({
+            handler:async() => await connectionToClientOnClose,
+            desc:"connectionToClient not closed",
+        })
+
         return true;
     }
 

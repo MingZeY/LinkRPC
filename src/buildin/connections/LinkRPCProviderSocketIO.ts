@@ -24,9 +24,6 @@ type SupportLibType = {
 
 
 class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
-
-    private closed = false;
-
     constructor(private socket:InstanceType<SupportLibSocketIO['Socket']>){
         super();
         this.socket.on('message',(data:string) => {
@@ -35,9 +32,8 @@ class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
                 this.emitter.emit('receive',packet);
             }
         })
-        this.socket.on('close',() => {
+        this.socket.on('disconnect',() => {
             this.emitter.emit('closed');
-            this.closed = true;
         })
     }
 
@@ -47,16 +43,12 @@ class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
     }
 
     close(): Promise<void> {
-        if(this.closed){
-            return Promise.resolve()
-        }
-        this.closed = true;
         this.socket.disconnect();
         return Promise.resolve();
     }
 
     isClosed(): boolean {
-        return this.closed;
+        return this.socket.disconnected;
     }
     
 }

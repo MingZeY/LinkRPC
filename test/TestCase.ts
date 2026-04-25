@@ -5,12 +5,12 @@ export abstract class TestCase{
     abstract run():Promise<boolean>;
     public async finally():Promise<void>{};
 
-    public asert(config:{
-        handler:() => boolean,
+    public async asert(config:{
+        handler:() => boolean | Promise<boolean>,
         desc?:string,
         throw?:boolean
     }){
-        if(!config.handler()){
+        if(!await config.handler()){
             const e = new Error(config.desc ?? "Assert failed")
             this.aserts.push(e);
             if(config.throw != false){
