@@ -10,11 +10,12 @@ import { LinkRPCPacketFactory, type LinkRPCPacket, type LinkRPCRequestPacket, ty
 import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js";
 
 type LinkRPCCoreEvents = {
+    destroy:() => void,
     destroyed:() => void,
 }
 
 type LinkRPCCoreRequestOptions = {
-    timeout?:number,
+    timeout?:number | undefined,
 }
 
 /**
@@ -25,13 +26,14 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
     public emitter = new TypedEmitter<LinkRPCCoreEvents>();
     private destroyed = false;
-    private onConnectionReciveEventHandler: (packet: LinkRPCPacket) => void;
 
     public requestContextRecords = new Map</* requestId */string,{
         context:LinkRPCContext,
         resolve: (context:LinkRPCContext) => void,
         reject: (e:Error) => void
     }>();
+
+    private activePromises = new Set<Promise<any>>();
 
     public connection:LinkRPCConnection;
     public handler:LinkRPCHandler;
@@ -61,12 +63,22 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         this.handler = params.handler || new LinkRPCHandler();
         this.middlewares = params.middlewares || [new LinkRPCBuildin.middleware.essential() ];
         this.define = params.define || {};
-        this.onConnectionReciveEventHandler = this.onConnectionRevice.bind(this);
         this.initEvents();
     }
 
     private initEvents() {
-        this.connection.emitter.on('receive', this.onConnectionReciveEventHandler);
+        const listener = (packet:LinkRPCPacket) => {
+            const promise = this.onConnectionRevice(packet);
+            this.activePromises.add(promise);
+            promise.finally(() => {
+                this.activePromises.delete(promise);
+            })
+        }
+        this.connection.emitter.on('receive', listener);
+        this.emitter.on('destroy',() => {
+            /** stop receive new packet */
+            this.connection.emitter.off('receive',listener);
+        })
     }
 
     /** 包进站 */
@@ -109,6 +121,8 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         await this.connection.send(context.outbound).catch(e => {
             console.error('Failed to send outbound packet:', e);
         });
+
+        return;
     }
 
     private async throughMiddleware(context: LinkRPCContext,direction:'inbound'|'outbound', index?: number | undefined): Promise<LinkRPCContext> {
@@ -155,7 +169,6 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
     }
 
     public async request(request:LinkRPCRequestPacket,options?:LinkRPCCoreRequestOptions): Promise<LinkRPCResponsePacket>{
-
         const requestId = request.id;
 
         // 创建请求context
@@ -259,12 +272,19 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
                 methodName: params.methodName,
                 args: params.args,
             })
-            const responsePacket = await this.request(requestPacket).catch((e) => {
+
+            const responsePromise = this.request(requestPacket,{
+                timeout:methodConfig?.timeout
+            }).catch((e) => {
                 return LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestPacket.id,
                     error:e instanceof Error ? e.message : `error:${e}`,
                 })
+            }).finally(() => {
+                this.activePromises.delete(responsePromise);
             })
+            this.activePromises.add(responsePromise);
+            const responsePacket = await responsePromise;
             return {
                 request: requestPacket,
                 response: responsePacket,
@@ -272,14 +292,18 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         })
     }
 
-    public destroy() {
+    public async destroy(force:boolean = false) {
+        this.emitter.emit('destroy')
+        if(force){
+            this.requestContextRecords.forEach((record, requestId) => {
+                record.reject(new Error('core destoryed'))
+            })
+        }if(!force){
+            await Promise.all(this.activePromises);
+        }
         this.destroyed = true;
-        this.requestContextRecords.forEach((record, requestId) => {
-            record.reject(new Error('core destoryed'))
-        })
-        this.connection.emitter.off('receive', this.onConnectionReciveEventHandler);
-        this.emitter.removeAllListeners();
         this.emitter.emit('destroyed');
+        this.emitter.removeAllListeners();
     }
 
     public isDestroyed(){
@@ -315,14 +339,20 @@ class LinkRPCCoreHub<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<
         if(this.cores.has(connection)){
             return this.cores.get(connection)!;
         }
+        if(connection.isClosed()){
+            throw new Error('connection is closed');
+        }
         const core = new LinkRPCCore({
             connection,
             handler:this.handler,
             middlewares:this.middlewares,
             define:this.define,
         });
-        core.emitter.on('destroyed',() => {
+        core.emitter.once('destroyed',() => {
             this.cores.delete(connection);
+        })
+        connection.emitter.once('closed',() => {
+            core.destroy();
         })
         this.cores.set(connection,core);
         return core;

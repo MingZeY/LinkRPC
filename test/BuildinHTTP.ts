@@ -25,7 +25,6 @@ export default class TestBuildinHTTP extends TestCase{
                 return a+b;
             },
         })
-
         await server.listen({
             port:3060
         })

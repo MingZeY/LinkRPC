@@ -60,8 +60,9 @@ class LinkRPCConnectionHTTP extends LinkRPCConnection{
             }
             this.close();
         }else if(this.parames.side == 'server'){// res to send
-            this.parames.res.end(JSON.stringify(packet));
-            this.close();
+            this.parames.res.end(JSON.stringify(packet),() => {
+                this.close();
+            });
         }
     }
 
