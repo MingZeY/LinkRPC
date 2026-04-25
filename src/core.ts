@@ -3,14 +3,14 @@ import { LinkRPCBuildin } from "./buildin/buildin.js";
 import type { LinkRPCConnection } from "./connection.js";
 import { DEFAULT_CORE_REQUEST_TIMEOUT } from "./const.js";
 import type { LinkRPCContext } from "./context.js";
-import type { LinkRPCAPIDefine } from "./define.js";
+import { LinkRPCAPIDefine } from "./define.js";
 import { LinkRPCHandler } from "./handler.js";
 import type { LinkRPCMiddleware } from "./middleware.js";
 import { LinkRPCPacketFactory, type LinkRPCPacket, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
-import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
+import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js";
 
 type LinkRPCCoreEvents = {
-
+    destroyed:() => void,
 }
 
 type LinkRPCCoreRequestOptions = {
@@ -111,7 +111,6 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         });
     }
 
-
     private async throughMiddleware(context: LinkRPCContext,direction:'inbound'|'outbound', index?: number | undefined): Promise<LinkRPCContext> {
         if (!index) {
             index = 0;
@@ -154,93 +153,6 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
             return nextFn(context);
         }
     }
-
-    // /** send request through connection */
-    // public async request(requestPacket: RPCRequestPacket, config: {
-    //     timeout: number,
-    // }): Promise<RPCResponsePacket> {
-    //     if (config.timeout < 0) {
-    //         throw new Error('Timeout must be greater than 0');
-    //     }
-
-    //     let timeoutRejecter: ReturnType<typeof setTimeout> | undefined;
-
-    //     const context:RPCContext = {
-    //         connection:this.connection,
-    //         core:this,
-    //         define:this.define,
-    //         request:requestPacket
-    //     }
-
-    //     const responseContextPromise = this.requestContextRecord(context);
-
-    //     const cleanup = () => {
-    //         clearTimeout(timeoutRejecter);
-    //         // this.requestPacketResolveMap.delete(requestPacket.id);
-    //     }
-
-    //     const responsePacket = new Promise<RPCResponsePacket>((resolve, reject) => {
-    //         // setup timeout
-    //         timeoutRejecter = setTimeout(() => {
-    //             reject(new Error(`Request timed out after ${config.timeout}ms`));
-    //         }, config.timeout)
-    //         // record request packet
-    //         // this.requestPacketResolveMap.set(requestPacket.id, { 
-    //         //     request:requestPacket,
-    //         //     resolve:resolve,
-    //         //     reject:reject,
-    //         // });
-
-    //     }).then((response) => {
-    //         cleanup();
-    //         return response;
-    //     }, (e) => {
-    //         cleanup();
-    //         return RPCPacketFactory.createResponsePacket({
-    //             requestId: requestPacket.id,
-    //             error: e.message,
-    //         })
-    //     })
-
-    //     try {
-    //         // send request packet
-    //         let context: RPCContext = {
-    //             core:this,
-    //             connection: this.connection,
-    //             outbound: requestPacket,
-    //             request:requestPacket,
-    //         }
-    //         context = await this.throughMiddleware(context,'outbound');
-    //         if(!context.outbound){
-    //             cleanup();
-    //             return RPCPacketFactory.createResponsePacket({
-    //                 requestId: requestPacket.id,
-    //                 error: 'request packet is not sent due middleware interrupt',
-    //             })
-    //         }
-    //         if(!RPCPacketFactory.isRequestPacket(context.outbound)){
-    //             cleanup();
-    //             return RPCPacketFactory.createResponsePacket({
-    //                 requestId: requestPacket.id,
-    //                 error: 'request packet is not valid due middleware interrupt',
-    //             })
-    //         }
-    //         context.connection.send(context.outbound);
-    //     } catch (e) {
-    //         cleanup();
-    //         throw e;
-    //     }
-
-    //     return responsePacket;
-    // }
-
-    // public async requsetResolve(requestId:string,responsePacket:RPCResponsePacket){
-    //     const record = this.requestPacketResolveMap.get(requestId);
-    //     if(!record){
-    //         return;
-    //     }
-    //     record.resolve(responsePacket);
-    // }
 
     public async request(request:LinkRPCRequestPacket,options?:LinkRPCCoreRequestOptions): Promise<LinkRPCResponsePacket>{
 
@@ -367,9 +279,98 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         })
         this.connection.emitter.off('receive', this.onConnectionReciveEventHandler);
         this.emitter.removeAllListeners();
+        this.emitter.emit('destroyed');
+    }
+
+    public isDestroyed(){
+        return this.destroyed;
     }
 }
 
+class LinkRPCCoreHub<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any>>{
+    private destroyed = false;
+    public cores:Map<LinkRPCConnection,LinkRPCCore<L,R>> = new Map();
+    public handler:LinkRPCHandler;
+    public middlewares:LinkRPCMiddleware[];
+    public define:{
+        local?:L | undefined,
+        remote?:R | undefined,
+    }
+
+    constructor(params:{
+        handler?:LinkRPCHandler
+        middlewares?:LinkRPCMiddleware[],
+        define:{
+            local?:L | undefined,
+            remote?:R | undefined,
+        }
+    }){
+        this.handler = params.handler || new LinkRPCHandler();
+        this.middlewares = params.middlewares || [];
+        this.define = params.define;
+        this.middlewares.unshift(new LinkRPCBuildin.middleware.essential());
+    }
+
+    public setCore(connection:LinkRPCConnection):LinkRPCCore<L,R>{
+        if(this.cores.has(connection)){
+            return this.cores.get(connection)!;
+        }
+        const core = new LinkRPCCore({
+            connection,
+            handler:this.handler,
+            middlewares:this.middlewares,
+            define:this.define,
+        });
+        core.emitter.on('destroyed',() => {
+            this.cores.delete(connection);
+        })
+        this.cores.set(connection,core);
+        return core;
+    }
+
+    public getCore(connection:LinkRPCConnection):LinkRPCCore<L,R>|undefined{
+        return this.cores.get(connection);
+    }
+
+    public use(middleware:LinkRPCMiddleware){
+        this.middlewares.push(middleware);
+    }
+
+    public hook<S extends LinkRPCDefineServiceName<L>,M extends LinkRPCDefineMethodName<L,S>>(serviceName:S,methodName:M,config:{
+        handler:LinkRPCDefineMethodBody<L,S,M>,
+        bind?:any,
+    }){
+        this.handler.hook(serviceName,methodName,config);
+    }
+
+    public unhook<S extends LinkRPCDefineServiceName<L>,M extends LinkRPCDefineMethodName<L,S>>(serviceName:S,methodName:M){
+        this.handler.unhook(serviceName,methodName);
+    }
+
+    public hookService<S extends LinkRPCDefineServiceName<L>>(serviceName:S,instance:LinkRPCDefineServiceInstance<L,S>){
+        const methodList = LinkRPCAPIDefine.getMethodList(instance);
+        for(let methodName of methodList){
+            this.hook(serviceName,methodName as LinkRPCDefineMethodName<L,S>,{
+                handler:instance[methodName],
+                bind:instance,
+            })
+        }
+    }
+
+    public destory(){
+        this.destroyed = true;
+        this.cores.forEach((core) => {
+            core.destroy();
+        })
+    }
+
+    public isDestroyed(){
+        return this.destroyed;
+    }
+
+}
+
 export {
-    LinkRPCCore
+    LinkRPCCore,
+    LinkRPCCoreHub,
 }
