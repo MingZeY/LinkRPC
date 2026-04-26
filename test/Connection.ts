@@ -7,7 +7,7 @@ export default class TestConnection extends TestCase{
     }
 
     async run(): Promise<boolean> {
-        const providerServer = new LinkRPCBuildin.provider.socket();
+        const providerServer = new LinkRPCBuildin.provider.Socket();
         await providerServer.listen({
             port:3060,
         })
@@ -18,7 +18,7 @@ export default class TestConnection extends TestCase{
             })
         })
 
-        const providerClient = new LinkRPCBuildin.provider.socket();
+        const providerClient = new LinkRPCBuildin.provider.Socket();
         const connectionToServer:Promise<LinkRPCConnection> = providerClient.connect({
             port:3060,
         })

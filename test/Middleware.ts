@@ -86,7 +86,7 @@ export default class TestMiddleware extends TestCase{
 
         const server = new LinkRPCServer({
             local:define,
-            provider:new LinkRPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.Memory()
         });
         server.use(new AuthMiddleware());
         server.hook('auth','login',{
@@ -103,7 +103,7 @@ export default class TestMiddleware extends TestCase{
 
         const client = new LinkRPCClient({
             remote:define,
-            provider:new LinkRPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.Memory()
         })
         client.use(new AuthMiddleware());
         const connection = await client.connect({port:1});

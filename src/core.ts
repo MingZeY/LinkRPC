@@ -61,7 +61,7 @@ class LinkRPCCore<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
     }) {
         this.connection = params.connection;
         this.handler = params.handler || new LinkRPCHandler();
-        this.middlewares = params.middlewares || [new LinkRPCBuildin.middleware.essential() ];
+        this.middlewares = params.middlewares || [new LinkRPCBuildin.middleware.Essential() ];
         this.define = params.define || {};
         this.initEvents();
     }
@@ -332,7 +332,7 @@ class LinkRPCCoreHub<L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<
         this.handler = params.handler || new LinkRPCHandler();
         this.middlewares = params.middlewares || [];
         this.define = params.define;
-        this.middlewares.unshift(new LinkRPCBuildin.middleware.essential());
+        this.middlewares.unshift(new LinkRPCBuildin.middleware.Essential());
     }
 
     public setCore(connection:LinkRPCConnection):LinkRPCCore<L,R>{

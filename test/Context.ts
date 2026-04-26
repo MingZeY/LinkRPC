@@ -42,7 +42,7 @@ export default class TestContext extends TestCase{
 
         const server = new LinkRPCServer({
             local:DefineServer,
-            provider:new LinkRPCBuildin.provider.http()
+            provider:new LinkRPCBuildin.provider.HTTP()
         });
 
         server.hookService('math',new MathService());
@@ -57,7 +57,7 @@ export default class TestContext extends TestCase{
 
         const client = new LinkRPCClient({
             remote:DefineServer,
-            provider:new LinkRPCBuildin.provider.http(),
+            provider:new LinkRPCBuildin.provider.HTTP(),
         })
 
         const connection = await client.connect({

@@ -1,9 +1,9 @@
 import { LinkRPCAPIDefine, LinkRPCBuildin, LinkRPCClient, LinkRPCConnection, LinkRPCServer } from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
-export default class TestBuildinSocketIO extends TestCase{
+export default class TestBuildinWebsocket extends TestCase{
     name(): string {
-        return "BuildinSocketIO";
+        return "BuildinWebsocket";
     }
 
     private cleanFns:(() => Promise<any>)[] = [];
@@ -24,7 +24,7 @@ export default class TestBuildinSocketIO extends TestCase{
         const server = new LinkRPCServer({
             local:ServerDefine,
             remote:ClientDefine,
-            provider:new LinkRPCBuildin.provider.SocketIO()
+            provider:new LinkRPCBuildin.provider.Websocket()
         });
 
         server.hook('math','add',{
@@ -49,7 +49,7 @@ export default class TestBuildinSocketIO extends TestCase{
         const client = new LinkRPCClient({
             local:ClientDefine,
             remote:ServerDefine,
-            provider:new LinkRPCBuildin.provider.SocketIO(),
+            provider:new LinkRPCBuildin.provider.Websocket(),
         })
         client.hook('status','ping',{
             handler() {

@@ -14,7 +14,7 @@ export default class TestClient extends TestCase{
 
         const server = new LinkRPCServer({
             local:define,
-            provider:new LinkRPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.Memory()
         });
         server.hook('math','add',{
             handler(a, b) {
@@ -25,7 +25,7 @@ export default class TestClient extends TestCase{
 
         const client = new LinkRPCClient({
             remote:define,
-            provider:new LinkRPCBuildin.provider.memory()
+            provider:new LinkRPCBuildin.provider.Memory()
         })
         const connection = await client.connect({port:1});
         const api = client.getAPI(connection);

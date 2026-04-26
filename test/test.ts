@@ -7,6 +7,7 @@ const testList = [
     import('./BuildinHTTP.js'),
     import('./BuildinSocket.js'),
     import('./BuildinSocketIO.js'),
+    import('./BuildinWebsocket.js'),
     import('./Middleware.js'),
     import('./Context.js'),
     import('./Connection.js'),
