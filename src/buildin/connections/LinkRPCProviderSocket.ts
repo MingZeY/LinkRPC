@@ -80,11 +80,11 @@ class LinkRPCProviderSocket extends LinkRPCProvider{
 
     private initServer(server:InstanceType<SupportLibNet['Server']>){
         server.addListener('connection',(socket) => {
+            const connection = this.createConnection(socket);
             this.sockets.add(socket);
             socket.on('close',() => {
                 this.sockets.delete(socket);
-            })            
-            const connection = this.createConnection(socket);
+            })
             this.emitter.emit('connection',connection);
         })
     }
@@ -118,6 +118,10 @@ class LinkRPCProviderSocket extends LinkRPCProvider{
                     break;
                 }
             }
+        })
+
+        socket.on('error',(error) => {
+            connection.close();
         })
 
         socket.on('close',() => {
