@@ -1,10 +1,12 @@
 
 import { LinkRPCConnection } from "./connection.js";
-import { LinkRPCCoreHub } from "./core.js";
+// import { LinkRPCCoreHub } from "./core.js";
 import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
 import type { LinkRPCProvider } from "./provider.js";
 import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
 import { LinkRPCBuildin } from "./buildin/buildin.js";
+import { LinkRPCHub } from "./hub.js";
+import type { LinkRPCPacket } from "./packet.js";
 
 
 
@@ -25,7 +27,7 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
         remote?:R | undefined,
     }
     public provider:LinkRPCProvider;
-    public hub:LinkRPCCoreHub<L,R>;
+    public hub:LinkRPCHub<L,R>;
 
     constructor(config?:LinkRPCServerConfig<L,R>){
         const defaultConfig:LinkRPCServerConfig<L,R> = {
@@ -41,7 +43,10 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
             throw new Error("Provider is undefined");
         }
         this.provider = config.provider;
-        this.hub = new LinkRPCCoreHub({
+        // this.hub = new LinkRPCCoreHub({
+        //     define:this.define
+        // })
+        this.hub = new LinkRPCHub({
             define:this.define
         })
         this.initEvents();
@@ -49,8 +54,14 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
 
     private initEvents(){
         this.provider.emitter.on('connection',(connection) => {
-            this.hub.setCore(connection);
             this.emitter.emit('connection',connection);
+            const reviceHandler = (packet:LinkRPCPacket) => {
+                this.hub.inbound(connection,packet);
+            }
+            connection.emitter.on('receive',reviceHandler)
+            connection.emitter.once('closed',() => {
+                connection.emitter.off('receive',reviceHandler);
+            })
         })
     }
 
@@ -68,8 +79,9 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
 
 
     public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
-        const core = this.hub.getCore(connection) || this.hub.setCore(connection);
-        return core.getAPI();
+        // const core = this.hub.getCore(connection) || this.hub.setCore(connection);
+        // return core.getAPI();
+        return this.hub.getAPI(connection);
     }
 
     public listen(params?:{
@@ -80,10 +92,10 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
     }
 
     public async close():Promise<void>{
-        if(this.hub.isDestroyed()){
-            return;
-        }
-        this.hub.destory();
+        // if(this.hub.isDestroyed()){
+        //     return;
+        // }
+        // this.hub.destory();
         return this.provider.close();
     }
 

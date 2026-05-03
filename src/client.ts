@@ -1,12 +1,12 @@
 
 import { LinkRPCConnection } from "./connection.js";
-import { LinkRPCCore, LinkRPCCoreHub } from "./core.js";
+// import { LinkRPCCore, LinkRPCCoreHub } from "./core.js";
 import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
 import type { LinkRPCProvider } from "./provider.js";
-import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js";
-import { LinkRPCHandler } from "./handler.js";
-import type { LinkRPCMiddleware } from "./middleware.js";
+import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
 import { LinkRPCBuildin } from "./buildin/buildin.js";
+import { LinkRPCHub } from "./hub.js";
+import type { LinkRPCPacket } from "./packet.js";
 
 
 
@@ -27,7 +27,8 @@ class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
         local?:L | undefined,
         remote?:R | undefined,
     }
-    public hub:LinkRPCCoreHub<L,R>;
+    // public hub:LinkRPCCoreHub<L,R>;
+    public hub:LinkRPCHub<L,R>;
     public provider:LinkRPCProvider;
 
     constructor(config?:LinkRPCClientConfig<L,R>){
@@ -44,9 +45,12 @@ class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
             throw new Error("Provider is undefined");
         }
         this.provider = config.provider;
-        this.hub = new LinkRPCCoreHub({
-            define:this.define,
-        });
+        // this.hub = new LinkRPCCoreHub({
+        //     define:this.define,
+        // });
+        this.hub = new LinkRPCHub({
+            define:this.define
+        })
         this.initEvents();
     }
 
@@ -67,15 +71,24 @@ class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
     }
 
     public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
-        const core = this.hub.getCore(connection) || this.hub.setCore(connection);
-        return core.getAPI();
+        // const core = this.hub.getCore(connection) || this.hub.setCore(connection);
+        // return core.getAPI();
+        return this.hub.getAPI(connection);
     }
 
     public async connect(params?:{
         port?:number,
         hostname?:string
     }):Promise<LinkRPCConnection>{
-        return this.provider.connect(params);
+        const connection = await this.provider.connect(params);
+        const reciveHandler = (packet:LinkRPCPacket) => {
+            this.hub.inbound(connection,packet);
+        }
+        connection.emitter.on('receive',reciveHandler);
+        connection.emitter.once('closed',() => {
+            connection.emitter.off('receive',reciveHandler);
+        })
+        return connection;
     }
 
 }

@@ -1,11 +1,12 @@
-import { LinkRPCConnection, LinkRPCCore, LinkRPCHandler, LinkRPCPacketFactory, type LinkRPCPacket } from "../src/index.js";
+import { LinkRPCHub } from "../src/hub.js";
+import { LinkRPCConnection, LinkRPCHandler, LinkRPCPacketFactory, type LinkRPCPacket } from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
 
 
-export default class TestCore extends TestCase{
+export default class TestHub extends TestCase{
     name(): string {
-        return "Core";
+        return "Hub";
     }
 
     async run(): Promise<boolean> {
@@ -51,17 +52,21 @@ export default class TestCore extends TestCase{
         connctionA.setTarget(connectionB);
         connectionB.setTarget(connctionA);
 
-        const coreA = new LinkRPCCore({
-            connection:connctionA,
+        const hubA = new LinkRPCHub({
             handler:handler,
         });
+        connctionA.emitter.on('receive',(packet) => {
+            hubA.inbound(connctionA,packet);
+        })
 
-        const coreB = new LinkRPCCore({
-            connection:connectionB,
+        const hubB = new LinkRPCHub({
             handler:new LinkRPCHandler(),
         });
+        connectionB.emitter.on('receive',(packet) => {
+            hubB.inbound(connectionB,packet);
+        })
 
-        const response = await coreB.request(LinkRPCPacketFactory.createRequestPacket({
+        const response = await hubB.request(connectionB,LinkRPCPacketFactory.createRequestPacket({
             serviceName:'math',
             methodName:'add',
             args:[1,2]

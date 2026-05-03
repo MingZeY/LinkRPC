@@ -1,8 +1,15 @@
 import type { LinkRPCContext } from "../../context.js";
+import type { LinkRPCHandler } from "../../handler.js";
 import { LinkRPCMiddleware } from "../../middleware.js";
-import { LinkRPCPacketFactory, type LinkRPCResponsePacket } from "../../packet.js";
+import { LinkRPCPacketFactory } from "../../packet.js";
 
 class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
+
+    constructor(
+        private handler:LinkRPCHandler
+    ){
+        super();
+    }
     
     /**
      * 入站请求包：将请求转换为响应包
@@ -19,7 +26,7 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         /** 没有需要发送的响应包 */
         && context.outbound == undefined){// 收到请求
             const requestId = context.request.id;
-            const responsePacket = await context.core.handler.handle(context.request,context).catch((e) => {
+            const responsePacket = await this.handler.handle(context.request,context).catch((e) => {
                 return LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestId,
                     error:e.message,
@@ -36,7 +43,7 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         /** 不再有新的数据要发送 */
         && context.outbound == undefined
         ){// 收到响应
-            context.core.requestContextResolve(context.request.id,context);
+            context.hub.requestContextResolve(context.request.id,context);
             return context;
         }else{
             return next(context);

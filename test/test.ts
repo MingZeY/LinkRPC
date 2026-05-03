@@ -2,7 +2,7 @@ import { TestCase } from './TestCase.js';
 
 const testList = [
     import('./Handler.js'),
-    import('./Core.js'),
+    import('./Hub.js'),
     import('./Client.js'),
     import('./BuildinHTTP.js'),
     import('./BuildinSocket.js'),
