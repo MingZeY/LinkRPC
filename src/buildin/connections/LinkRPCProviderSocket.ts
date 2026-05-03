@@ -166,10 +166,13 @@ class LinkRPCProviderSocket extends LinkRPCProvider{
         const socket = new netSupport.Socket();
         const connection = this.createConnection(socket);
 
-        return new Promise((resolve) => {
+        return new Promise((resolve,reject) => {
             if(!params?.port){
                 throw new Error("port is required");
             }
+            socket.on('error',(error) => {
+                reject(error);
+            })
             socket.connect({
                 host:params?.hostname,
                 port:params.port,
