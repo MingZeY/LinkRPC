@@ -3,6 +3,7 @@ import { LinkRPCPacketFactory, type LinkRPCPacket } from '../../packet.js';
 import { LinkRPCProvider } from '../../provider.js'
 import { dynamicimport } from '../../utils.js';
 
+
 type Protocol = 'ws' | 'wss';
 
 type SupportLibHTTP = typeof import('http');
@@ -11,13 +12,14 @@ type SupportLibWS = typeof import('ws');
 type SupportLib = {
     http?: Promise<SupportLibHTTP>,
     https?: Promise<SupportLibHTTPS>,
-    ws?: Promise<SupportLibWS>
+    ws?: Promise<SupportLibWS>,
+    websocket?: typeof WebSocket,
 }
 
 type WebSocketServer = import('ws').Server;
 type WebSocketClient = import('ws').WebSocket;
 
-class LinkRPCConnectionWebsocket extends LinkRPCConnection{
+class LinkRPCConnectionWS extends LinkRPCConnection {
 
     private closed = false;
 
@@ -59,7 +61,46 @@ class LinkRPCConnectionWebsocket extends LinkRPCConnection{
     isClosed(): boolean {
         return this.closed;
     }
-    
+
+}
+
+class LinkRPCConnectionWebsocket extends LinkRPCConnection {
+
+    constructor(
+        private socket: InstanceType<typeof WebSocket>
+    ) {
+        super();
+        socket.addEventListener('message', (event) => {
+            const data = event.data;
+            const message = typeof data == 'string' ? data : String(data);
+            const packet = LinkRPCPacketFactory.parsePacketFromString(message);
+            if (packet) {
+                this.emitter.emit('receive', packet);
+            }
+        })
+        socket.addEventListener('close', () => {
+            this.emitter.emit('closed');
+        })
+    }
+
+    send(packet: LinkRPCPacket): Promise<void> {
+        if (this.isClosed()) {
+            throw new Error('connection is closed');
+        }
+        this.socket.send(JSON.stringify(packet));
+        return Promise.resolve()
+    }
+    close(): Promise<void> {
+        if (this.isClosed()) {
+            return Promise.resolve();
+        }
+        this.socket.close();
+        return Promise.resolve();
+    }
+    isClosed(): boolean {
+        return this.socket.readyState == WebSocket.CLOSED;
+    }
+
 }
 
 type LinkRPCProviderWebsocketConfig = {
@@ -72,7 +113,7 @@ type LinkRPCProviderWebsocketConfig = {
     },
 }
 
-class LinkRPCProviderWebsocket extends LinkRPCProvider{
+class LinkRPCProviderWebsocket extends LinkRPCProvider {
 
     private defaultProtocol: Protocol = 'ws';
     private config: LinkRPCProviderWebsocketConfig;
@@ -105,6 +146,11 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider{
         }
         if (!this.config.lib.ws) {
             this.config.lib.ws = dynamicimport('ws').catch(() => undefined);
+        }
+        if (!this.config.lib.websocket) {
+            if("Websocket" in globalThis){
+                this.config.lib.websocket = globalThis['WebSocket'];
+            }
         }
     }
 
@@ -147,7 +193,7 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider{
                 socket.on('close', () => {
                     this.sockets.delete(socket);
                 });
-                const connection = new LinkRPCConnectionWebsocket(socket);
+                const connection = new LinkRPCConnectionWS(socket);
                 this.emitter.emit('connection', connection);
             });
         });
@@ -167,7 +213,7 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider{
             });
         });
     }
-    
+
     async close(): Promise<void> {
         return new Promise<void>((resolve) => {
             if (!this.config.server) {
@@ -192,6 +238,14 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider{
     }
 
     async connect(params?: { hostname?: string | undefined; port?: number | undefined }): Promise<LinkRPCConnection> {
+        if ("window" in globalThis) {
+            return this.connectByWebsocket(params);
+        } else {
+            return this.connectByWS(params);
+        }
+    }
+
+    async connectByWS(params?: { hostname?: string | undefined; port?: number | undefined }): Promise<LinkRPCConnection> {
         if (!params || !params.port) {
             throw new Error("connect requires port");
         }
@@ -202,14 +256,33 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider{
         const protocol: Protocol = this.config.protocol || this.defaultProtocol;
         const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
         const socket = new wsSupport.WebSocket(url);
-        const connection = new LinkRPCConnectionWebsocket(socket);
+        const connection = new LinkRPCConnectionWS(socket);
         return new Promise<LinkRPCConnection>((resolve) => {
             socket.on('open', () => {
                 resolve(connection);
             });
         });
     }
-    
+
+    async connectByWebsocket(params?: { hostname?: string | undefined; port?: number | undefined }): Promise<LinkRPCConnection> {
+        if (!params || !params.port) {
+            throw new Error("connect requires port");
+        }
+        const websocketSupport = this.config.lib?.websocket;
+        if (!websocketSupport) {
+            throw new Error('websocket support not found');
+        }
+        const protocol: Protocol = this.config.protocol || this.defaultProtocol;
+        const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
+        const socket = new websocketSupport(url);
+        const connection = new LinkRPCConnectionWebsocket(socket);
+        return new Promise<LinkRPCConnection>((resolve) => {
+            socket.addEventListener('open', () => {
+                resolve(connection);
+            })
+        })
+    }
+
 }
 
 export {
