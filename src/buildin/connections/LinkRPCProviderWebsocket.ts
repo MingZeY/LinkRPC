@@ -148,7 +148,7 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
             this.config.lib.ws = dynamicimport('ws').catch(() => undefined);
         }
         if (!this.config.lib.websocket) {
-            if("Websocket" in globalThis){
+            if("WebSocket" in globalThis){
                 this.config.lib.websocket = globalThis['WebSocket'];
             }
         }
