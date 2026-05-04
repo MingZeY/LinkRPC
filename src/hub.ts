@@ -205,8 +205,6 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
             request: requestPacket,
         }
 
-        // 登记请求
-        const responseContextPromise = this.requestContextRecord(requestId, context);
 
         // 设置超时
         const requestTimeout = options?.timeout || this.default.requestOptions.timeout;
@@ -218,10 +216,22 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
             this.requestContextResolve(requestId, context)
         }, requestTimeout);
 
+        // 登记请求
+        const responseContextPromise = this.requestContextRecord(requestId, context);
+        responseContextPromise.finally(() => {
+            clearTimeout(timeoutRejecter);
+        })
+
         // 设置出站包
         context.outbound = requestPacket;
 
-        context = await this.outboundContext(context, false);
+        context = await this.outboundContext(context, false).catch((e) => {
+            context.response = LinkRPCPacketFactory.createResponsePacket({
+                requestId:requestId,
+                error:`Outbound Middleware Error: ${e.message}`
+            });
+            return context;
+        })
 
         if (!context.outbound) {
             if (context.response) {
@@ -236,13 +246,13 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         } else {
             // 发送请求
             await this.outbound(context.connection, context.outbound).catch((e: Error) => {
-                console.error('Failed to send outbound packet:', e);
+                context.response = LinkRPCPacketFactory.createResponsePacket({
+                    requestId: requestId,
+                    error:`Outbound Error: ${e.message}`
+                })
+                this.requestContextResolve(requestId, context);
             })
         }
-
-        responseContextPromise.finally(() => {
-            clearTimeout(timeoutRejecter);
-        })
 
         return responseContextPromise.then((context) => {
             if (context.response) {
