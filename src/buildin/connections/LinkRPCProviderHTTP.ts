@@ -117,7 +117,11 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
         }
         if(!this.config.lib.fetch){
             this.config.lib.fetch = new Promise<typeof fetch | undefined>((resolve) => {
-                resolve(fetch);
+                if(typeof globalThis !== 'undefined' && 'window' in globalThis){
+                    resolve(globalThis.fetch.bind(globalThis));
+                }else{
+                    resolve(fetch);
+                }
             }).catch((e) => {
                 return undefined;
             })
