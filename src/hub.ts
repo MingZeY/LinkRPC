@@ -113,9 +113,7 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
     public async outbound(connection: LinkRPCConnection, outboundPacket: LinkRPCPacket): Promise<void> {
         /** 发送出站包 */
-        await connection.send(outboundPacket).catch(e => {
-            console.error('Failed to send outbound packet:', e);
-        });
+        await connection.send(outboundPacket);
         return;
     }
 
