@@ -3,9 +3,9 @@ import type { LinkRPCRequestPacket, LinkRPCResponsePacket } from "./packet.js";
 
 export type FunctionTypeToPromiseFunctionType<T extends (...args: any[]) => any> =
   T extends (...args: infer P) => Promise<infer R> ?
-  (...args: P) => Promise<R | undefined>
+  (...args: P) => Promise<R>
   : T extends (...args: infer P) => infer R ?
-  (...args: P) => Promise<R | undefined>
+  (...args: P) => Promise<R>
   : never
   ;
 
