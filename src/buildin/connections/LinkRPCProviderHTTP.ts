@@ -131,6 +131,17 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
     private initServer(server:InstanceType<SupportLibHTTP['Server'] | SupportLibHTTPS['Server']>):InstanceType<SupportLibHTTP['Server'] | SupportLibHTTPS['Server']>{
 
         server.on('request',(req,res) => {
+
+            if(req.method == 'OPTIONS'){
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'linkrpc, Content-Type');
+                res.setHeader('Access-Control-Max-Age', '86400'); // 缓存预检 1 天，减少 OPTIONS
+                res.writeHead(200);
+                res.end();
+                return;
+            }
+
             /** 
              * Request must be POST method and linkrpc=1 in headers
              * and body must be JSON string
@@ -143,6 +154,8 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
             ) {
                 return;
             }
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Headers', 'linkrpc');
 
             // receive request body,
             let body:string = '';
