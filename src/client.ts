@@ -1,6 +1,5 @@
 
 import { LinkRPCConnection } from "./connection.js";
-// import { LinkRPCCore, LinkRPCCoreHub } from "./core.js";
 import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
 import type { LinkRPCProvider } from "./provider.js";
 import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";

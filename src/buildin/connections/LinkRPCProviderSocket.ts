@@ -92,6 +92,8 @@ class LinkRPCProviderSocket extends LinkRPCProvider{
     private createConnection(socket:InstanceType<SupportLibNet['Socket']>):LinkRPCConnectionSocket{
         const connection = new LinkRPCConnectionSocket(socket);
 
+        const MAX_MESSAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+
         let buffer = Buffer.alloc(0);
         let expectedLength: number | null = null;
         socket.on('data',(chunk) => {
@@ -100,6 +102,11 @@ class LinkRPCProviderSocket extends LinkRPCProvider{
                 if (expectedLength === null) {
                     // 读取消息长度
                     expectedLength = buffer.readUInt32BE(0);
+                    if(expectedLength > MAX_MESSAGE_SIZE){
+                        connection.close();
+                        socket.destroy();
+                        return;
+                    }
                     buffer = Buffer.from(buffer.subarray(4));
                 }
 

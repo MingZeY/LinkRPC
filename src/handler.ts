@@ -59,11 +59,11 @@ class LinkRPCHandler{
     public async handle(request:LinkRPCRequestPacket,context?:LinkRPCContext):Promise<LinkRPCResponsePacket>{
         const service = this.hooks[request.serviceName];
         if(!service){
-            throw new Error(`Service ${request.serviceName} not found.`);
+            throw new Error(`handler not found.`);
         }
         const hook = service[request.methodName];
         if(!hook){
-            throw new Error(`Method hook ${request.methodName} not found.`);
+            throw new Error(`handler not found.`);
         }
         const result = await hook.handler.call(new Proxy(hook.bind || {},{
             get(target,prop){

@@ -20,7 +20,10 @@ export interface LinkRPCResponsePacket extends LinkRPCPacket {
     error?:any;
 }
 
-
+export interface LinkRPCCustomPacket extends LinkRPCPacket {
+    type:'custom';
+    data:any;
+}
 
 export class LinkRPCPacketFactory {
 

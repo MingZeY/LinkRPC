@@ -1,6 +1,5 @@
 
 import { LinkRPCConnection } from "./connection.js";
-// import { LinkRPCCoreHub } from "./core.js";
 import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
 import type { LinkRPCProvider } from "./provider.js";
 import { TypedEmitter, type LinkRPCDefineToRPCAPI } from "./utils.js";
@@ -79,8 +78,6 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
 
 
     public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
-        // const core = this.hub.getCore(connection) || this.hub.setCore(connection);
-        // return core.getAPI();
         return this.hub.getAPI(connection);
     }
 
@@ -92,10 +89,6 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
     }
 
     public async close():Promise<void>{
-        // if(this.hub.isDestroyed()){
-        //     return;
-        // }
-        // this.hub.destory();
         return this.provider.close();
     }
 

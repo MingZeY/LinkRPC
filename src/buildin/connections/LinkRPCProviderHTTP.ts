@@ -58,9 +58,9 @@ class LinkRPCConnectionHTTP extends LinkRPCConnection{
             if(responsePacket){
                 this.emitter.emit('receive',responsePacket);
             }
-            this.close();
         }else if(this.parames.side == 'server'){// res to send
             this.parames.res.end(JSON.stringify(packet),() => {
+                /** Close connection when response is sent ,because http is stateless */
                 this.close();
             });
         }
@@ -130,6 +130,8 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
 
     private initServer(server:InstanceType<SupportLibHTTP['Server'] | SupportLibHTTPS['Server']>):InstanceType<SupportLibHTTP['Server'] | SupportLibHTTPS['Server']>{
 
+        const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
+
         server.on('request',(req,res) => {
 
             if(req.method == 'OPTIONS'){
@@ -152,6 +154,8 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
             if (req.method !== 'POST'
             || req.headers['linkrpc'] !== '1'
             ) {
+                res.writeHead(400);
+                res.end();
                 return;
             }
             res.setHeader('Access-Control-Allow-Origin', '*');
@@ -159,7 +163,13 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
 
             // receive request body,
             let body:string = '';
+            let bodyLength:number = 0;
             req.on('data',(chunk:Buffer) => {
+                bodyLength += chunk.length;
+                if(bodyLength > MAX_BODY_SIZE){
+                    req.destroy();
+                    return;
+                }
                 body += chunk.toString();
             });
 
@@ -169,9 +179,13 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
                 try{
                     packet = JSON.parse(body);
                 }catch(e){
+                    res.writeHead(400);
+                    res.end();
                     return;
                 }
                 if(!LinkRPCPacketFactory.isPacket(packet)){
+                    res.writeHead(400);
+                    res.end();
                     return;
                 }
 
