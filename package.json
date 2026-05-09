@@ -1,6 +1,6 @@
 {
   "name": "linkrpc",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "TypeScript-based RPC framework with support for multiple connection types including HTTP, Socket, and SocketIO or custom",
   "author": "MingZeY <1552904342@qq.com>",
   "repository": {
