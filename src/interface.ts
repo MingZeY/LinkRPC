@@ -23,12 +23,11 @@ type LinkRPCInterfaceConfig = {
 type LinkRPCInterfaceHandler<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C extends LinkRPCInterfaceConfig> = (target:LinkRPCInterfaceTarget<D>,config?:C | undefined) => Promise<any>;
 
 class LinkRPCInterfaceBase<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C extends LinkRPCInterfaceConfig> {
-    // protected define: D;
     public handler: LinkRPCInterfaceHandler<D,C>;
 
     constructor(handler: LinkRPCInterfaceHandler<D,C>,defultConfig?:C | undefined) {
-        // this.define = define;
         this.handler = handler;
+        const that = this;
 
         // 使用 Proxy 层级拦截
         return new Proxy(this, {
@@ -43,14 +42,14 @@ class LinkRPCInterfaceBase<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C ex
                     get(_, methodName: string) {
                         // 进入第二层 Proxy：Method 层，返回实际的执行函数
                         return Object.assign(async (...args:any[]) => {
-                            return await handler({
+                            return that.request({
                                 service:serviceName,
                                 method:methodName,
                                 args,
                             } as LinkRPCInterfaceTarget<D>,defultConfig);
                         },{
                             async request(args:any[],config:C){
-                                return await handler({
+                                return that.request({
                                     service:serviceName,
                                     method:methodName,
                                     args,
@@ -61,6 +60,10 @@ class LinkRPCInterfaceBase<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C ex
                 });
             }
         }) as any;
+    }
+
+    public async request(target:LinkRPCInterfaceTarget<D>,config?:C):Promise<any>{
+        return this.handler(target,config);
     }
 
 }

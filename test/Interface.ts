@@ -42,6 +42,11 @@ export default class TestInterface extends TestCase {
             timeout:1000,
         });
         const r3 = await interfaces.String.concat('a','b');
+        const r4 = await interfaces.request({
+            service:'Math',
+            method:'add',
+            args:[3,4]
+        })
         
         this.asert({
             handler:() => r1 == 3,
@@ -54,6 +59,10 @@ export default class TestInterface extends TestCase {
         this.asert({
             handler:() => r3 == 'ab',
             desc:'String.concat("a","b") == "ab"',
+        })
+        this.asert({
+            handler:() => r4 == 7,
+            desc:'Math.add(3,4) == 7'
         })
 
         return Promise.resolve(true);
