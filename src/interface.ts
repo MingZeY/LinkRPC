@@ -24,7 +24,7 @@ type LinkRPCInterfaceHandler<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C 
 
 class LinkRPCInterfaceBase<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C extends LinkRPCInterfaceConfig> {
     // protected define: D;
-    protected handler: LinkRPCInterfaceHandler<D,C>;
+    public handler: LinkRPCInterfaceHandler<D,C>;
 
     constructor(handler: LinkRPCInterfaceHandler<D,C>,defultConfig?:C | undefined) {
         // this.define = define;
