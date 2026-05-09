@@ -4,6 +4,7 @@ import type { LinkRPCDefineToRPCAPI } from "./utils.js";
 
 
 class LinkRPCAPI<T extends LinkRPCAPIDefine<LinkRPCAPIDefineType>>{
+    
     constructor(){
         
     }

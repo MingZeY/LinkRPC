@@ -28,8 +28,8 @@ export default class TestClient extends TestCase{
             provider:new LinkRPCBuildin.provider.Memory()
         })
         const connection = await client.connect({port:1});
-        const api = client.getAPI(connection);
-        const result = await api.math.add.call(1,2);
+        const interfaces = client.getInterface(connection);
+        const result = await interfaces.math.add(1,2);
         this.asert({
             handler: () => result == 3,
             desc:'result should be 3',

@@ -69,6 +69,11 @@ class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
         return this.hub.use.bind(this.hub);
     }
 
+    public getInterface(connection:LinkRPCConnection){
+        return this.hub.getInterface(connection);
+    }
+
+    /** @deprecated use getInterface */
     public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
         // const core = this.hub.getCore(connection) || this.hub.setCore(connection);
         // return core.getAPI();

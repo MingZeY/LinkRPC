@@ -66,11 +66,11 @@ export default class TestBuildinSocket extends TestCase{
         })
 
         let requestToServer = await connectionToServer.then((connection) => {
-            return client.getAPI(connection).math.add.call(1,2)
+            return client.getInterface(connection).math.add(1,2)
         });
 
         let requestToClient = await connectionToClient.then((connection) => {
-            return server.getAPI(connection).status.ping.call();
+            return server.getInterface(connection).status.ping();
         })
 
         this.asert({

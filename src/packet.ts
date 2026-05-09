@@ -6,17 +6,17 @@ export interface LinkRPCPacket {
     meta?:{[key:string]:any};// 元数据，用于传递一些额外的信息
 }
 
-export interface LinkRPCRequestPacket extends LinkRPCPacket {
+export interface LinkRPCRequestPacket<S extends string = string,M extends string = string,P extends any[] = any[]> extends LinkRPCPacket {
     type:'request';
-    serviceName:string;
-    methodName:string;
-    args:any[];
+    serviceName:S;
+    methodName:M;
+    args:P;
 }
 
-export interface LinkRPCResponsePacket extends LinkRPCPacket {
+export interface LinkRPCResponsePacket<R extends any = any> extends LinkRPCPacket {
     type:'response';
     requestId:string;
-    result?:any;
+    result?:R;
     error?:any;
 }
 

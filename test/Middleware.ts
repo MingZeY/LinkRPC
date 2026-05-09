@@ -107,12 +107,12 @@ export default class TestMiddleware extends TestCase{
         })
         client.use(new AuthMiddleware());
         const connection = await client.connect({port:1});
-        const api = client.getAPI(connection);
+        const interfaces = client.getInterface(connection);
 
         /**
          * 未登录非法请求
          */
-        const illegalRequest = await api.math.add.call(1,2).then((r) => {
+        const illegalRequest = await interfaces.math.add(1,2).then((r) => {
             return false;
         }).catch((e:Error) => {
             if(e.message.includes('token is required')){
@@ -128,8 +128,8 @@ export default class TestMiddleware extends TestCase{
         /**
          * 登录后进行请求
          */
-        await api.auth.login.call();
-        const result = await api.math.add.call(1,2);
+        await interfaces.auth.login();
+        const result = await interfaces.math.add(1,2);
         this.asert({
             handler: () => result == 3,
             desc:'result should be 3',

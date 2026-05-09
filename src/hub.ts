@@ -3,8 +3,9 @@ import { LinkRPCBuildin } from "./buildin/buildin.js";
 import { LinkRPCConnection } from "./connection.js";
 import { DEFAULT_CORE_REQUEST_TIMEOUT } from "./const.js";
 import type { LinkRPCContext } from "./context.js";
-import { LinkRPCAPIDefine } from "./define.js";
+import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
 import { LinkRPCHandler } from "./handler.js";
+import { LinkRPCInterface } from "./interface.js";
 import type { LinkRPCMiddleware } from "./middleware.js";
 import { LinkRPCPacketFactory, type LinkRPCPacket, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
 import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js"
@@ -17,7 +18,7 @@ type LinkRPCEvents = {
     receive: (packet: LinkRPCPacket) => void,
 }
 
-class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any>>{
+class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> {
 
     public emitter = new TypedEmitter<LinkRPCEvents>();
 
@@ -40,17 +41,17 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
     public handler: LinkRPCHandler;
     public middlewares: LinkRPCMiddleware[];
 
-    public define:{
-        local?:L | undefined,
-        remote?:R | undefined,
+    public define: {
+        local?: L | undefined,
+        remote?: R | undefined,
     }
 
     constructor(params?: {
         handler?: LinkRPCHandler,
         middlewares?: LinkRPCMiddleware[],
-        define?:{
-            local?:L | undefined,
-            remote?:R | undefined,
+        define?: {
+            local?: L | undefined,
+            remote?: R | undefined,
         }
     }) {
         this.handler = params?.handler || new LinkRPCHandler();
@@ -191,9 +192,7 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         }
     }
 
-    public async request(connection: LinkRPCConnection, requestPacket: LinkRPCRequestPacket, options?: {
-        timeout?: number | undefined;
-    }): Promise<LinkRPCResponsePacket> {
+    public async request(connection: LinkRPCConnection, requestPacket: LinkRPCRequestPacket, options?: LinkRPCCoreRequestOptions): Promise<LinkRPCResponsePacket> {
         const requestId = requestPacket.id;
 
         // 创建请求context
@@ -225,8 +224,8 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
 
         context = await this.outboundContext(context, false).catch((e) => {
             context.response = LinkRPCPacketFactory.createResponsePacket({
-                requestId:requestId,
-                error:`Outbound Middleware Error: ${e.message}`
+                requestId: requestId,
+                error: `Outbound Middleware Error: ${e.message}`
             });
             return context;
         })
@@ -246,7 +245,7 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
             await this.outbound(context.connection, context.outbound).catch((e: Error) => {
                 context.response = LinkRPCPacketFactory.createResponsePacket({
                     requestId: requestId,
-                    error:`Outbound Error: ${e.message}`
+                    error: `Outbound Error: ${e.message}`
                 })
                 this.requestContextResolve(requestId, context);
             })
@@ -269,6 +268,31 @@ class LinkRPCHub <L extends LinkRPCAPIDefine<any>,R extends LinkRPCAPIDefine<any
         })
     }
 
+    public getInterface(connection: LinkRPCConnection) {
+        const define = this.define.remote;
+        const interfaces = new LinkRPCInterface<R,LinkRPCCoreRequestOptions>(async (target,options) => {
+            const config = define?.resolveMethodConfig(target.service, target.method);
+            if(!options){
+                options = this.default.requestOptions
+            }
+            options.timeout = config?.timeout || options.timeout;
+
+            const requestPacket = LinkRPCPacketFactory.createRequestPacket({
+                serviceName: target.service,
+                methodName: target.method,
+                args: target.args,
+            })
+            const responsePacket = await this.request(connection,requestPacket,options);
+            if(responsePacket.error){
+                throw new Error(responsePacket.error);
+            }
+            return responsePacket.result;
+            
+        },this.default.requestOptions);
+        return interfaces;
+    }
+
+    /** @deprecated use getInterface */
     public getAPI(connection: LinkRPCConnection): LinkRPCDefineToRPCAPI<R> {
         const api = new LinkRPCAPI<R>();
         return api.interface(async (params) => {

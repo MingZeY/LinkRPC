@@ -64,8 +64,8 @@ export default class TestContext extends TestCase{
             port:3060
         })
 
-        const api = client.getAPI(connection);
-        const result = await api.math.add.call(1,2);
+        const interfaces = client.getInterface(connection);
+        const result = await interfaces.math.add(1,2);
         this.asert({
             handler:() => result == 3,
             desc:"Add 1 and 2 should be 3",

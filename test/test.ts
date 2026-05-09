@@ -1,6 +1,7 @@
 import { TestCase } from './TestCase.js';
 
 const testList = [
+    import('./Interface.js'),
     import('./Handler.js'),
     import('./Hub.js'),
     import('./Client.js'),

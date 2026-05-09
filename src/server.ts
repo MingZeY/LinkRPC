@@ -76,7 +76,11 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
         return this.hub.hookService.bind(this.hub);
     }
 
+    public getInterface(connection:LinkRPCConnection){
+        return this.hub.getInterface(connection);
+    }
 
+    /** @deprecated use getInterface */
     public getAPI(connection:LinkRPCConnection):LinkRPCDefineToRPCAPI<R>{
         return this.hub.getAPI(connection);
     }

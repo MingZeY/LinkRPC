@@ -30,6 +30,14 @@ export type LinkRPCDefineToRPCAPI<T extends LinkRPCAPIDefine<any>> = T extends L
   }
   : never;
 
+export type LinkRPCDefineToRPCInterface<D extends LinkRPCAPIDefine<any>,T> = D extends LinkRPCAPIDefine<infer U> ?
+  {
+    [S in keyof U]: {
+      [M in keyof U[S]]: (...args: Parameters<U[S][M]>) => Promise<ReturnType<U[S][M]>>
+    }
+  }
+  : never;
+
 export type LinkRPCDefineServiceName<T extends LinkRPCAPIDefine<any>> = T extends LinkRPCAPIDefine<infer U> ? keyof U & string : never;
 export type LinkRPCDefineMethodName<T extends LinkRPCAPIDefine<any>, S extends LinkRPCDefineServiceName<T>> = T extends LinkRPCAPIDefine<infer U> ? keyof U[S] & string : never;
 export type LinkRPCDefineMethodBody<T extends LinkRPCAPIDefine<any>, S extends LinkRPCDefineServiceName<T>, M extends LinkRPCDefineMethodName<T, S>> = T extends LinkRPCAPIDefine<infer U> ? U[S][M] : never;
