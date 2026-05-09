@@ -87,15 +87,22 @@ type LinkRPCInterfaceProxy<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C ex
     : never;
 
 
-
-const LinkRPCInterface = LinkRPCInterfaceBase as (new <
+type LinkRPCInterfaceInstance<
     D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,
-    C extends LinkRPCInterfaceConfig = LinkRPCInterfaceConfig,
->(
-    handler: LinkRPCInterfaceHandler<D,C>,
-    defultConfig?:C,
-) => LinkRPCInterfaceBase<D,C> & LinkRPCInterfaceProxy<D,C>);
+    C extends LinkRPCInterfaceConfig = LinkRPCInterfaceConfig
+> = LinkRPCInterfaceBase<D, C> & LinkRPCInterfaceProxy<D, C>;
 
-export {
-    LinkRPCInterface
-}
+const LinkRPCInterfaceConstructor = LinkRPCInterfaceBase as (new <
+    D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,
+    C extends LinkRPCInterfaceConfig = LinkRPCInterfaceConfig
+>(
+    handler: LinkRPCInterfaceHandler<D, C>,
+    defultConfig?: C
+) => LinkRPCInterfaceInstance<D, C>);
+
+export type LinkRPCInterface<
+    D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,
+    C extends LinkRPCInterfaceConfig = LinkRPCInterfaceConfig
+> = LinkRPCInterfaceInstance<D, C>;
+
+export const LinkRPCInterface = LinkRPCInterfaceConstructor;
