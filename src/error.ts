@@ -1,8 +1,8 @@
 class LinkRPCError extends Error {
 
-    public code: number;
+    public code?: number | undefined;
 
-    constructor(message: string, code: number) {
+    constructor(message: string, code?: number) {
         super(message);
         this.code = code;
     }

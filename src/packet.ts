@@ -50,7 +50,7 @@ export class LinkRPCPacketFactory {
         requestId:string,
         result?:any,
         error?:any,
-        code?:number,
+        code?:number | undefined,
     }):LinkRPCResponsePacket{
         return {
             id:LinkRPCPacketFactory.createID(),
