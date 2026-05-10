@@ -16,6 +16,7 @@ type LinkRPCCoreRequestOptions = {
 
 type LinkRPCEvents = {
     receive: (packet: LinkRPCPacket) => void,
+    error: (e: Error) => void,
 }
 
 class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> {
@@ -227,6 +228,7 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
                 requestId: requestId,
                 error: `Outbound Middleware Error: ${e.message}`
             });
+            this.emitter.emit('error',e instanceof Error ? e : new Error(e));
             return context;
         })
 
