@@ -4,6 +4,7 @@ import { LinkRPCConnection } from "./connection.js";
 import { DEFAULT_CORE_REQUEST_TIMEOUT } from "./const.js";
 import type { LinkRPCContext } from "./context.js";
 import { LinkRPCAPIDefine, type LinkRPCAPIDefineType } from "./define.js";
+import { LinkRPCError } from "./error.js";
 import { LinkRPCHandler } from "./handler.js";
 import { LinkRPCInterface } from "./interface.js";
 import type { LinkRPCMiddleware } from "./middleware.js";
@@ -292,7 +293,7 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
             })
             const responsePacket = await this.request(connection,requestPacket,options);
             if(responsePacket.error){
-                throw new Error(responsePacket.error);
+                throw new LinkRPCError(responsePacket.error,responsePacket.code);
             }
             return responsePacket.result;
             
