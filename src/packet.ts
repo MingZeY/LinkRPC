@@ -18,6 +18,7 @@ export interface LinkRPCResponsePacket<R extends any = any> extends LinkRPCPacke
     requestId:string;
     result?:R;
     error?:any;
+    code?:number|undefined;
 }
 
 export interface LinkRPCCustomPacket extends LinkRPCPacket {
@@ -49,6 +50,7 @@ export class LinkRPCPacketFactory {
         requestId:string,
         result?:any,
         error?:any,
+        code?:number,
     }):LinkRPCResponsePacket{
         return {
             id:LinkRPCPacketFactory.createID(),
@@ -56,6 +58,7 @@ export class LinkRPCPacketFactory {
             requestId:data.requestId,
             result:data.result,
             error:data.error,
+            code:data.code,
         }
     }
 

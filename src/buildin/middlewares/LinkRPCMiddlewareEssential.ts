@@ -1,4 +1,5 @@
 import type { LinkRPCContext } from "../../context.js";
+import { LinkRPCError } from "../../error.js";
 import type { LinkRPCHandler } from "../../handler.js";
 import { LinkRPCMiddleware } from "../../middleware.js";
 import { LinkRPCPacketFactory } from "../../packet.js";
@@ -27,11 +28,19 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         && context.outbound == undefined){// 收到请求
             const requestId = context.request.id;
             const responsePacket = await this.handler.handle(context.request,context).catch((e) => {
-                context.hub.emitter.emit('error',e instanceof Error ? e : new Error(e));
-                return LinkRPCPacketFactory.createResponsePacket({
-                    requestId:requestId,
-                    error:e.message,
-                })
+                if(e instanceof LinkRPCError){
+                    return LinkRPCPacketFactory.createResponsePacket({
+                        requestId:requestId,
+                        error:e.message,
+                        code:e.code,
+                    })
+                }else{
+                    context.hub.emitter.emit('error',e instanceof Error ? e : new Error(e));
+                    return LinkRPCPacketFactory.createResponsePacket({
+                        requestId:requestId,
+                        error:e.message,
+                    })
+                }
             });
             context.response = responsePacket;
             context.outbound = responsePacket;
