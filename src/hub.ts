@@ -89,7 +89,10 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
 
     public async inboundContext(context: LinkRPCContext, pipe: boolean = true): Promise<LinkRPCContext> {
         /** 处理入站包 */
-        context = await this.throughMiddleware(context, 'inbound');
+        context = await this.throughMiddleware(context, 'inbound').catch((e) => {
+            this.emitter.emit('error',e instanceof Error ? e : new Error(e));
+            return context;
+        })
         /** 如果没有要出站的包则终止 */
         if (!context.outbound) {
             return context;
@@ -102,7 +105,10 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
 
     public async outboundContext(context: LinkRPCContext, pipe: boolean = true): Promise<LinkRPCContext> {
         /** 处理出站包 */
-        context = await this.throughMiddleware(context, 'outbound');
+        context = await this.throughMiddleware(context, 'outbound').catch((e) => {
+            this.emitter.emit('error',e instanceof Error ? e : new Error(e));
+            return context;
+        })
         if (!context.outbound) {
             return context;
         }

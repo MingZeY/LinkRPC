@@ -27,6 +27,7 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         && context.outbound == undefined){// 收到请求
             const requestId = context.request.id;
             const responsePacket = await this.handler.handle(context.request,context).catch((e) => {
+                context.hub.emitter.emit('error',e instanceof Error ? e : new Error(e));
                 return LinkRPCPacketFactory.createResponsePacket({
                     requestId:requestId,
                     error:e.message,
