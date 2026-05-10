@@ -38,7 +38,7 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
                     context.hub.emitter.emit('error',e instanceof Error ? e : new Error(e));
                     return LinkRPCPacketFactory.createResponsePacket({
                         requestId:requestId,
-                        error:e.message,
+                        error:`Server Internal Error`,
                     })
                 }
             });
