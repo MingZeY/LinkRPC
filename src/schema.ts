@@ -129,7 +129,7 @@ class SchemaField<T>{
         return this.descriptor.name || this.constructor.name;
     }
 
-    public copy(id?:string){
+    public copy(id?:string):this{
         const copyDescriptor:SchemaFieldDescriptor<T> = {
             ...this.descriptor,
             ...(this.descriptor.validators ? {
@@ -139,7 +139,11 @@ class SchemaField<T>{
             } : undefined)
         }
         copyDescriptor.id = id;
-        return new SchemaField<T>(copyDescriptor);
+        // 使用Object.create和Object.assign来保持子类类型
+        const copy = Object.create(Object.getPrototypeOf(this));
+        Object.assign(copy, this);
+        copy.descriptor = copyDescriptor;
+        return copy;
     }
 
     public id(id:string){
@@ -223,7 +227,7 @@ class SchemaField<T>{
 
     public setFieldParserOptions(options:SchemaFieldParserOptions){
         this.fieldParserOptions = options;
-        return this;
+        return this
     }
 
     public default(value:T){
@@ -419,7 +423,12 @@ class TupleField<T extends [SchemaField<any>,...SchemaField<any>[]]> extends Sch
 
 type FunctionFieldInfer<P extends SchemaField<any>[],R extends SchemaField<any>> = (...args:{[K in keyof P]:P[K]['infer']}) => R['infer'];
 class FunctionField<P extends SchemaField<any>[],R extends SchemaField<any>> extends SchemaField<FunctionFieldInfer<P,R>>{
-    constructor(){
+    public _args?:P | undefined;
+    public _return?:R | undefined;
+    constructor(config?:{
+        args?:P | undefined,
+        return?:R | undefined,
+    }){
         super({
             parser:(value,handler) => {
                 throw new ParseError({
@@ -428,6 +437,18 @@ class FunctionField<P extends SchemaField<any>[],R extends SchemaField<any>> ext
                 })
             }
         });
+        this._args = config?.args || undefined;
+        this._return = config?.return || undefined;
+    }
+
+    public args<TP extends SchemaField<any>[]>(...args:TP){
+        this._args = args as unknown as P;
+        return this as FunctionField<TP,R>;
+    }
+
+    public return<TR extends SchemaField<any>>(returnType:TR){
+        this._return = returnType as unknown as R;
+        return this as FunctionField<P,TR>;
     }
 }
 
@@ -461,6 +482,15 @@ class ORField<T extends [SchemaField<any>,...SchemaField<any>[]]> extends Schema
     }
 }
 
+type PromiseFiledInfer<T extends SchemaField<any>> = T extends SchemaField<infer P> ? Promise<P> : never;
+class PromiseField<T extends SchemaField<any>> extends SchemaField<PromiseFiledInfer<T>>{
+    public promiseType:T;
+    constructor(type:T){
+        super();
+        this.promiseType = type;
+    }
+}
+
 class SchemaBuilder{
 
     public string(){
@@ -491,12 +521,27 @@ class SchemaBuilder{
         return new TupleField(...args);
     }
 
-    public function(){
-        return new FunctionField();
+    /**
+     * alias for tuple
+     */
+    public args<P extends ConstructorParameters<typeof TupleField>>(...args:P){
+        return new TupleField(...args);
+    }
+
+    public function<P extends ConstructorParameters<typeof FunctionField>[0]>(args?:P){
+        return new FunctionField(args);
     }
 
     public or<T extends [SchemaField<any>,SchemaField<any>,...SchemaField<any>[]]>(...types:T){
         return new ORField(types);
+    }
+
+    public promise<P extends ConstructorParameters<typeof PromiseField>[0]>(args:P){
+        return new PromiseField(args);
+    }
+
+    public build<T extends SchemaField<any>>(constructor:(builder:this) => T){
+        return constructor(this);
     }
 
 }
