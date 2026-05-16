@@ -1,4 +1,5 @@
 import type { LinkRPCContext } from "./context.js";
+import type { LinkRPCAPIDefine } from "./define.js";
 import { LinkRPCPacketFactory, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
 import { LinkRPCContextSymbol } from "./symbol.js";
 import { TypedEmitter } from "./utils.js";
@@ -16,10 +17,16 @@ class LinkRPCHandler{
 
     public emitter = new TypedEmitter<LinkRPCHandlerEvents>();
 
+    private define?:LinkRPCAPIDefine<any> | undefined;
+
     private hooks:Record<string,Record<string,{
         handler:(...args:any[])=>any,
         bind:any,
     }>> = {};
+
+    constructor(define?:LinkRPCAPIDefine<any>){
+        this.define = define;
+    }
 
 
     /**
@@ -28,7 +35,7 @@ class LinkRPCHandler{
      * @param methodName Method name
      * @param config Hook function configuration
      */
-    hook(serviceName:string,methodName:string,config:{
+    public hook(serviceName:string,methodName:string,config:{
         handler:(...args:any[])=>any,
         bind?:any,
     }){
@@ -49,7 +56,7 @@ class LinkRPCHandler{
      * @param serviceName Service name
      * @param methodName Method name
      */
-    unhook(serviceName:string,methodName:string){
+    public unhook(serviceName:string,methodName:string){
         if(!this.hooks[serviceName]){
             return;
         }
@@ -57,15 +64,36 @@ class LinkRPCHandler{
     }
 
     public async handle(request:LinkRPCRequestPacket,context?:LinkRPCContext):Promise<LinkRPCResponsePacket>{
+
+        // get service
         const service = this.hooks[request.serviceName];
         if(!service){
             throw new Error(`handler not found.`);
         }
+
+        // get config
+        const config = this.define?.resolveMethodConfig(request.serviceName,request.methodName);
+
+        // schema check
+        const schema = config?.schema;
+        if(schema?.args){
+            try{
+                request.args = await schema.args.parseAsync(request.args);
+            }catch(e){
+                return LinkRPCPacketFactory.createResponsePacket({
+                    requestId:request.id,
+                    error:'bad request',
+                })
+            }
+        }
+
+        // get hook
         const hook = service[request.methodName];
         if(!hook){
             throw new Error(`handler not found.`);
         }
-        const result = await hook.handler.call(new Proxy(hook.bind || {},{
+
+        let result = await hook.handler.call(new Proxy(hook.bind || {},{
             get(target,prop){
                 if(prop === LinkRPCContextSymbol){
                     return context;
@@ -73,6 +101,18 @@ class LinkRPCHandler{
                 return Reflect.get(target,prop);
             }
         }),...request.args);
+
+        if(schema?.return){
+            try{
+                result = await schema.return.parseAsync(result);
+            }catch(e){
+                return LinkRPCPacketFactory.createResponsePacket({
+                    requestId:request.id,
+                    error:'bad response',
+                })
+            }
+        }
+
         const response = LinkRPCPacketFactory.createResponsePacket({
             requestId:request.id,
             result:result,
