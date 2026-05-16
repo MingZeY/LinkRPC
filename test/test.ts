@@ -13,6 +13,7 @@ const testList = [
     import('./Context.js'),
     import('./Connection.js'),
     import('./Schema.js'),
+    import('./Define.js'),
 ]
 
 const tests:Array<TestCase> = [];
