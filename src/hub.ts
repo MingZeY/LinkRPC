@@ -56,9 +56,12 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
             remote?: R | undefined,
         }
     }) {
-        this.handler = params?.handler || new LinkRPCHandler();
+        this.handler = params?.handler || new LinkRPCHandler(params?.define?.local);
         this.middlewares = params?.middlewares || [];
-        this.middlewares.unshift(new LinkRPCBuildin.middleware.Essential(this.handler));
+        this.middlewares.unshift(new LinkRPCBuildin.middleware.Essential({
+            handler:this.handler.handle.bind(this.handler),
+            resolver:this.requestContextResolve.bind(this)
+        }));
         this.define = params?.define || {};
     }
 

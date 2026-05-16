@@ -1,15 +1,23 @@
 import type { LinkRPCContext } from "../../context.js";
 import { LinkRPCError } from "../../error.js";
-import type { LinkRPCHandler } from "../../handler.js";
 import { LinkRPCMiddleware } from "../../middleware.js";
-import { LinkRPCPacketFactory } from "../../packet.js";
+import { LinkRPCPacketFactory, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "../../packet.js";
+
+type LinkRPCMiddlewareEssentialHandler = (request:LinkRPCRequestPacket,context?:LinkRPCContext) => Promise<LinkRPCResponsePacket>;
+type LinkRPCMiddlewareEssentialResolver = (requestId:string,context:LinkRPCContext) => void;
 
 class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
 
-    constructor(
-        private handler:LinkRPCHandler
-    ){
+    private handler:LinkRPCMiddlewareEssentialHandler;
+    private resolver:LinkRPCMiddlewareEssentialResolver;
+
+    constructor(params:{
+        handler:LinkRPCMiddlewareEssentialHandler,
+        resolver:LinkRPCMiddlewareEssentialResolver,
+    }){
         super();
+        this.handler = params.handler;
+        this.resolver = params.resolver;
     }
     
     /**
@@ -27,7 +35,7 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         /** 没有需要发送的响应包 */
         && context.outbound == undefined){// 收到请求
             const requestId = context.request.id;
-            const responsePacket = await this.handler.handle(context.request,context).catch((e) => {
+            const responsePacket = await this.handler(context.request,context).catch((e) => {
                 if(e instanceof LinkRPCError){
                     return LinkRPCPacketFactory.createResponsePacket({
                         requestId:requestId,
@@ -53,7 +61,8 @@ class LinkRPCMiddlewareEssential extends LinkRPCMiddleware{
         /** 不再有新的数据要发送 */
         && context.outbound == undefined
         ){// 收到响应
-            context.hub.requestContextResolve(context.request.id,context);
+            // context.hub.requestContextResolve(context.request.id,context);
+            this.resolver(context.request.id,context);
             return context;
         }else{
             return next(context);
