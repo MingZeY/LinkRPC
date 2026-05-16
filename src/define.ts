@@ -84,13 +84,13 @@ class LinkRPCAPIDefine<T extends LinkRPCAPIDefineType> {
         if(!this.config.services[service]){
             this.config.services[service] = {}
         }
-        if(!this.config.services[service].methods){
-            this.config.services[service].methods = {}
+        if(!this.config.services[service]!.methods){
+            this.config.services[service]!.methods = {}
         }
-        if(!this.config.services[service].methods[method]){
-            this.config.services[service].methods[method] = {}
+        if(!this.config.services[service]!.methods![method]){
+            this.config.services[service]!.methods![method] = {}
         }
-        this.config.services[service].methods[method] = config;
+        this.config.services[service]!.methods![method]! = config;
     }
 
     /**
