@@ -28,12 +28,12 @@ export default class TestSchema extends TestCase{
 
         const AgeField = t.number().min(0).max(99);
         const RecordAgeFieldParent = AgeField.copy('parentAge');
-        const recordSchema = t.record({
+        const recordSchema = t.object({
             name:t.string(),
             age:RecordAgeFieldParent,
             pos:t.tuple(t.number(),t.number()),
             female:t.boolean(),
-            child:t.array(t.record({
+            child:t.array(t.object({
                 name:t.string(),
                 age:AgeField.copy().setValidator((value,handler) => {
                     const parentAge = handler.getValueByField(RecordAgeFieldParent);
@@ -41,8 +41,6 @@ export default class TestSchema extends TestCase{
                 })
             }))
         });
-        
-        type RecordSchema = typeof recordSchema.infer;
 
         const objValue = recordSchema.parse(JSON.stringify({
             name:"test",

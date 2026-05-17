@@ -328,15 +328,15 @@ class AnyField extends SchemaField<any>{
     }    
 }
 
-type RecordFiledInferIsOptionalField<T> = T extends SchemaField<any,infer OPTIONAL> ? OPTIONAL extends true ? true : false : never;
-type RecordFieldInfer<T extends Record<string, SchemaField<any, any>>> = {
-    [K in keyof T as RecordFiledInferIsOptionalField<T[K]> extends false ? K : never]-?:T[K]['infer']
+type ObjectFiledInferIsOptionalField<T> = T extends SchemaField<any,infer OPTIONAL> ? OPTIONAL extends true ? true : false : never;
+type ObjectFieldInfer<T extends Record<string, SchemaField<any, any>>> = {
+    [K in keyof T as ObjectFiledInferIsOptionalField<T[K]> extends false ? K : never]-?:T[K]['infer']
 } & {
-    [K in keyof T as RecordFiledInferIsOptionalField<T[K]> extends true  ? K : never]+?:T[K]['infer']
+    [K in keyof T as ObjectFiledInferIsOptionalField<T[K]> extends true  ? K : never]+?:T[K]['infer']
 } extends infer R ? {
     [K in keyof R]:R[K]
 } : never;
-class RecordField<T extends Record<string,SchemaField<any>>> extends SchemaField<RecordFieldInfer<T>>{
+class ObjectField<T extends Record<string,SchemaField<any>>> extends SchemaField<ObjectFieldInfer<T>>{
     public record:T;
     constructor(record:T){
         super({
@@ -367,10 +367,27 @@ class RecordField<T extends Record<string,SchemaField<any>>> extends SchemaField
                     result[key] = keyType.parseRecursion(keyValue,handler);
                     handler.popTrace();
                 }
-                return result as RecordFieldInfer<T>;
+                return result as ObjectFieldInfer<T>;
             }
         });
         this.record = record;
+    }
+}
+
+type RecordFieldInfer<K,V> = K extends SchemaField<infer KT> ? 
+    KT extends keyof any ? 
+        V extends SchemaField<infer VT> ? {
+            [RK in KT]:VT
+        } : never
+    : never
+: never;
+class RecordField<K extends SchemaField<any>,V extends SchemaField<any>> extends SchemaField<RecordFieldInfer<K,V>>{
+    constructor(key:K,value:V){
+        super({
+            parser:(value,handler) => {
+                throw new Error(`RecordField not implemented.`);
+            }
+        });
     }
 }
 
@@ -564,8 +581,12 @@ class SchemaBuilder{
         return new UndefinedField();
     }
 
-    public record<P extends ConstructorParameters<typeof RecordField>[0]>(args:P){
-        return new RecordField(args);
+    public object<P extends ConstructorParameters<typeof ObjectField>[0]>(args:P){
+        return new ObjectField(args)
+    }
+
+    public record<K extends SchemaField<any>,V extends SchemaField<any>>(key:K,value:V){
+        return new RecordField(key,value);
     }
 
     public array<P extends ConstructorParameters<typeof ArrayField>[0]>(args:P){
