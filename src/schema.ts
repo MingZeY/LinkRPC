@@ -208,14 +208,7 @@ class SchemaField<T,OPTIONAL = false>{
     }
 
     public parse(value:any,options?:SchemaParserOptions):SchemaPrettyify<T>{
-        const defaultParserOptions:SchemaFieldParserOptions = {
-            
-        }
-        const context:SchemaParseContext = {
-            parserOptions:options || defaultParserOptions,
-            trace:[]
-        }
-        const handler = new SchemaParseHandler(context);
+        const handler = new SchemaParseHandler(options);
         return this.parseRecursion(value,handler);
     }
 
@@ -382,17 +375,22 @@ type RecordFieldInfer<K,V> = K extends SchemaField<infer KT> ?
     : never
 : never;
 class RecordField<K extends SchemaField<any>,V extends SchemaField<any>> extends SchemaField<RecordFieldInfer<K,V>>{
+    public key:K;
+    public value:V;
     constructor(key:K,value:V){
         super({
             parser:(value,handler) => {
                 throw new Error(`RecordField not implemented.`);
             }
         });
+        this.key = key;
+        this.value = value;
     }
 }
 
 type ArrayFieldInfer<T extends SchemaField<any>> = T extends SchemaField<infer P> ? P[] : never;
 class ArrayField<T extends SchemaField<any>> extends SchemaField<ArrayFieldInfer<T>>{
+    public type:T;
     constructor(type:T){
         super({
             parser:(value,handler) => {
@@ -415,11 +413,13 @@ class ArrayField<T extends SchemaField<any>> extends SchemaField<ArrayFieldInfer
                 }) as ArrayFieldInfer<T>
             }
         });
+        this.type = type;
     }
 }
 
 type TupleFieldInfer<T extends [SchemaField<any>,...SchemaField<any>[]]> = {[P in keyof T]: T[P]['infer']}
 class TupleField<T extends [SchemaField<any>,...SchemaField<any>[]]> extends SchemaField<TupleFieldInfer<T>>{
+    public elements:T;
     constructor(...elements:T){
         super({
             parser: (value,handler) => {
@@ -451,6 +451,7 @@ class TupleField<T extends [SchemaField<any>,...SchemaField<any>[]]> extends Sch
                 }) as TupleFieldInfer<T>
             }
         });
+        this.elements = elements;
     }
 }
 
@@ -489,13 +490,13 @@ type ORFieldInfer<T> = {
     [K in keyof T]:T[K] extends SchemaField<infer P,any> ? P : never;
 } extends (infer U)[] ? U : never;
 class ORField<T extends [SchemaField<any,false>,...SchemaField<any,false>[]]> extends SchemaField<ORFieldInfer<T>>{
+    public types:T;
     constructor(types:T){
-        const typesRef = types;
         super({
             parser: (value,handler) => {
                 const rawValue = value;
                 const errors:ParseError[] = [];
-                for(let type of typesRef){
+                for(let type of types){
                     try{
                         return type.parseRecursion(value,handler) as ORFieldInfer<T>;
                     }catch(e){
@@ -508,12 +509,13 @@ class ORField<T extends [SchemaField<any,false>,...SchemaField<any,false>[]]> ex
                 }
                 throw new ParseError({
                     context:handler.getContext(),
-                    require: typesRef.map(t => t.name).join('|'),
+                    require: types.map(t => t.name).join('|'),
                     revice: typeof rawValue,
                     message: errors.map(e => e.message).join('|'),
                 });
             }
         });
+        this.types = types;
     }
 }
 
