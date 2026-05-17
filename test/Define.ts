@@ -10,7 +10,10 @@ export default class TestDefine extends TestCase{
 
         type DefineType = {
             Math:{
-                add(a:number,b:number):Promise<number>;
+                add(a:number,b:number):Promise<number>,
+            },
+            String:{
+                concat(a:string,b:string):Promise<string>,
             }
         }
 
@@ -23,6 +26,12 @@ export default class TestDefine extends TestCase{
                 add:{
                     args:builder.build(t => t.args(t.number(),t.number())),
                     return:builder.build(t => t.promise(t.number())),
+                }
+            },
+            String:{
+                concat:{
+                    args:builder.build(t => t.args(t.string(),t.string())),
+                    return:builder.build(t => t.promise(t.string()))
                 }
             }
         });
@@ -72,7 +81,7 @@ export default class TestDefine extends TestCase{
         const badResponseContext = await hub.inboundContext(badRequestContext,false);
         await this.asert({
             handler:() => badResponseContext.response?.error != undefined
-        })
+        });
         
         return true;
 
