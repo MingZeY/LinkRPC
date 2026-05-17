@@ -22,6 +22,7 @@ export default class TestDefine extends TestCase{
             Math:{
                 add:{
                     args:builder.build(t => t.args(t.number(),t.number())),
+                    return:builder.build(t => t.promise(t.number())),
                 }
             }
         });

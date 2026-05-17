@@ -486,7 +486,11 @@ type PromiseFiledInfer<T extends SchemaField<any>> = T extends SchemaField<infer
 class PromiseField<T extends SchemaField<any>> extends SchemaField<PromiseFiledInfer<T>>{
     public promiseType:T;
     constructor(type:T){
-        super();
+        super({
+            parser:(value,handler) => {
+                return type.parseRecursion(value,handler);
+            }
+        });
         this.promiseType = type;
     }
 }

@@ -102,6 +102,7 @@ class LinkRPCHandler{
             }
         }),...request.args);
 
+        // schema check
         if(schema?.return){
             try{
                 result = await schema.return.parseAsync(result);
