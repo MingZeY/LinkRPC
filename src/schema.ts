@@ -110,7 +110,7 @@ class ParseError extends Error{
     }
 }
 
-class SchemaField<T>{
+class SchemaField<T,OPTIONAL = false>{
 
     public descriptor:SchemaFieldDescriptor<T>;
     public fieldParserOptions?:SchemaFieldParserOptions;
@@ -121,8 +121,8 @@ class SchemaField<T>{
         },descriptor);
     }
 
-    get infer():T{
-        return this.descriptor.infer as T;
+    get infer(){
+        return this.descriptor.infer as SchemaPrettyify<T>;
     }
 
     get name(){
@@ -237,8 +237,9 @@ class SchemaField<T>{
 
     public optional(){
         this.descriptor.optional = true;
-        return this as SchemaField<T | undefined>;
+        return this as SchemaField<T,true>;
     }
+
 
     public setValidator(validator:SchemaFieldValidator<T>,config?:{
         name?:string,
@@ -309,6 +310,14 @@ class BooleanField extends SchemaField<boolean>{
     }
 };
 
+class UndefinedField extends SchemaField<undefined>{
+    constructor(){
+        super({
+            typeof:'undefined',
+        })
+    }
+}
+
 class AnyField extends SchemaField<any>{
     constructor(){
         super({
@@ -319,7 +328,14 @@ class AnyField extends SchemaField<any>{
     }    
 }
 
-type RecordFieldInfer<T extends Record<string,SchemaField<any>>> = {[P in keyof T]: T[P]['infer'];}
+type RecordFiledInferIsOptionalField<T> = T extends SchemaField<any,infer OPTIONAL> ? OPTIONAL extends true ? true : false : never;
+type RecordFieldInfer<T extends Record<string, SchemaField<any, any>>> = {
+    [K in keyof T as RecordFiledInferIsOptionalField<T[K]> extends false ? K : never]-?:T[K]['infer']
+} & {
+    [K in keyof T as RecordFiledInferIsOptionalField<T[K]> extends true  ? K : never]+?:T[K]['infer']
+} extends infer R ? {
+    [K in keyof R]:R[K]
+} : never;
 class RecordField<T extends Record<string,SchemaField<any>>> extends SchemaField<RecordFieldInfer<T>>{
     public record:T;
     constructor(record:T){
@@ -452,8 +468,10 @@ class FunctionField<P extends SchemaField<any>[],R extends SchemaField<any>> ext
     }
 }
 
-type ORFieldInfer<T extends SchemaField<any>[]> = T extends SchemaField<infer P> []? P : never;
-class ORField<T extends [SchemaField<any>,...SchemaField<any>[]]> extends SchemaField<ORFieldInfer<T>>{
+type ORFieldInfer<T> = {
+    [K in keyof T]:T[K] extends SchemaField<infer P,any> ? P : never;
+} extends (infer U)[] ? U : never;
+class ORField<T extends [SchemaField<any,false>,...SchemaField<any,false>[]]> extends SchemaField<ORFieldInfer<T>>{
     constructor(types:T){
         const typesRef = types;
         super({
@@ -540,6 +558,10 @@ class SchemaBuilder{
 
     public any(){
         return new AnyField();
+    }
+
+    public undefined(){
+        return new UndefinedField();
     }
 
     public record<P extends ConstructorParameters<typeof RecordField>[0]>(args:P){
