@@ -34,7 +34,7 @@ class LinkRPCAPIDefine<T extends LinkRPCAPIDefineType> {
 
     private config:LinkRPCDefineConfig<T>;
 
-    private DEFAULT_METHOD_CONFIG:LinkRPCMethodConfig = {
+    private DEFAULT_METHOD_CONFIG:Readonly<LinkRPCMethodConfig> = {
 
     }
 
@@ -131,7 +131,11 @@ class LinkRPCAPIDefine<T extends LinkRPCAPIDefineType> {
             const service = schema[serviceName];
             for(const methodName in service){
                 const schema = service[methodName];
-                const config = (this.getMethodConfig(serviceName,methodName) || this.DEFAULT_METHOD_CONFIG)
+                // const config = (this.getMethodConfig(serviceName,methodName) || this.DEFAULT_METHOD_CONFIG)
+                const config = {
+                    ...this.DEFAULT_METHOD_CONFIG,
+                    ...this.getMethodConfig(serviceName,methodName)
+                }
                 if(!config.schema){
                     config.schema = {}
                 }
