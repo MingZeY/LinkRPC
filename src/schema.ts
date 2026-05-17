@@ -495,6 +495,35 @@ class PromiseField<T extends SchemaField<any>> extends SchemaField<PromiseFiledI
     }
 }
 
+type EnumFieldInfer<T> = T extends [infer U,...(infer U)[]] ? U : never;
+class EnumField<U extends string, T extends [U,...U[]]> extends SchemaField<EnumFieldInfer<T>>{
+    public enums:T;
+    constructor(enums:T){
+        super({
+            parser:(value,handler) => {
+                if(typeof value != 'string'){
+                    throw new ParseError({
+                        context:handler.getContext(),
+                        require:'string',
+                        revice:typeof value,
+                        message:`Value ${value} is not a string`,
+                    })
+                }
+                if(!enums.includes(value as EnumFieldInfer<T>)){
+                    throw new ParseError({
+                        context:handler.getContext(),
+                        require:enums.join('|'),
+                        revice:value,
+                        message:`Value ${value} is not in enum`,
+                    })
+                }
+                return value as EnumFieldInfer<T>;
+            }
+        });
+        this.enums = enums;
+    }
+}
+
 class SchemaBuilder{
 
     public string(){
@@ -542,6 +571,10 @@ class SchemaBuilder{
 
     public promise<P extends ConstructorParameters<typeof PromiseField>[0]>(args:P){
         return new PromiseField(args);
+    }
+
+    public enum<U extends string, T extends [U,...U[]]>(values:T){
+        return new EnumField(values);
     }
 
     public build<T extends SchemaField<any>>(constructor:(builder:this) => T){
