@@ -58,6 +58,10 @@ export default class TestSchema extends TestCase{
         this.asert({handler:() => objValue.child[0]?.name === "child0"});
         this.asert({handler:() => objValue.child[0]?.age === 10});
 
+        t.args(t.object({
+            indexes:t.record(t.string(),t.or(t.string(),t.undefined())).optional()
+        })).parse([{indexes: {username: "MingZeY"}}])
+
         return true;
     }
 

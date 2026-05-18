@@ -379,8 +379,29 @@ class RecordField<K extends SchemaField<any>,V extends SchemaField<any>> extends
     public value:V;
     constructor(key:K,value:V){
         super({
-            parser:(value,handler) => {
-                throw new Error(`RecordField not implemented.`);
+            parser:(record,handler) => {
+                if(this.key.descriptor.typeof != 'string'){
+                    throw new ParseError({
+                        context:handler.getContext(),
+                        message:'key type must be string when parsing a record',
+                    })
+                }
+                if(typeof record != 'object' || record == null){
+                    throw new ParseError({
+                        context:handler.getContext(),
+                        require:'object',
+                        revice:typeof record,
+                    })
+                }
+                
+                const result:Record<string,any> = {}
+                for(const key in record){
+                    const value = record[key];
+                    handler.pushTrace(key);
+                    result[key] = this.value.parseRecursion(value,handler);
+                    handler.popTrace();
+                }
+                return result as RecordFieldInfer<K,V>;
             }
         });
         this.key = key;
