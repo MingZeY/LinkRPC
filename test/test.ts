@@ -1,5 +1,4 @@
 import { TestCase } from './TestCase.js';
-
 const testList = [
     import('./Interface.js'),
     import('./Handler.js'),
@@ -15,6 +14,7 @@ const testList = [
     import('./BuildinSocket.js'),
     import('./BuildinSocketIO.js'),
     import('./BuildinWebsocket.js'),
+    // import('./FileProxy.js'),
 ]
 
 const tests:Array<TestCase> = [];
