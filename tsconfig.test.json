@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./test",
+    // "outDir": "./dist_test",
+
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": [
+    "test/**/*"
+  ],
+  "references": [
+    { "path": "./tsconfig.src.json" }
+  ]
+}

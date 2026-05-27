@@ -23,22 +23,26 @@
       "require": "./dist/index.js"
     }
   },
+  "browser": {
+    "./dist/pipe.js": "./dist/pipe.browser.js"
+  },
   "main": "dist/index.js",
   "type": "module",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "tsx test/test.ts",
     "playground": "tsx test/playground.ts",
-    "build": "tsc -p tsconfig.build.json",
-    "check": "tsc --noEmit"
+    "build": "tsc -p tsconfig.src.json",
+    "check:src": "tsc --noEmit -p tsconfig.src.json",
+    "check:test": "npm run build && tsc --noEmit -p tsconfig.test.json",
+    "check": "npm run check:test"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/ws": "^8.18.1",
-    "express": "^5.2.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "tsx": "^4.21.0",
-    "ws": "^8.20.0"
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
   }
 }

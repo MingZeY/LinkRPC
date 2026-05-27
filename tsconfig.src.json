@@ -8,7 +8,10 @@
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+
+    // Project References
+    "composite": true
   },
   "include": [
     "src/**/*"
