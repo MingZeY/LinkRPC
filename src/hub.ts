@@ -9,10 +9,16 @@ import { LinkRPCHandler } from "./handler.js";
 import { LinkRPCInterface } from "./interface.js";
 import type { LinkRPCMiddleware } from "./middleware.js";
 import { LinkRPCPacketFactory, type LinkRPCPacket, type LinkRPCRequestPacket, type LinkRPCResponsePacket } from "./packet.js";
+import { LinkRPCChannelPipe } from "./pipe.js";
 import { TypedEmitter, type LinkRPCDefineMethodBody, type LinkRPCDefineMethodName, type LinkRPCDefineServiceInstance, type LinkRPCDefineServiceName, type LinkRPCDefineToRPCAPI } from "./utils.js"
 
 type LinkRPCCoreRequestOptions = {
     timeout?: number | undefined,
+    /** 
+     * 声明流式接口回调，LinkRPC会自动创建channel和pipe，用于接收流式数据
+     * 会在正常的RPC请求得到返回后调用，如果请求失败，回调pipe变量为undefined
+     * */
+    stream?:(pipe:LinkRPCChannelPipe|undefined) => void
 }
 
 type LinkRPCEvents = {
@@ -294,9 +300,24 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
                 methodName: target.method,
                 args: target.args,
             })
+
+            if(options.stream){// 如果声明了stream传输，添加stream字段
+                requestPacket.stream = {
+                    channel: `req-${requestPacket.id}`,
+                }
+            }
+
             const responsePacket = await this.request(connection,requestPacket,options);
             if(responsePacket.error){
+                if(options.stream){
+                    options.stream(undefined);
+                }
                 throw new LinkRPCError(responsePacket.error,responsePacket.code);
+            }else{
+                if(options.stream && requestPacket.stream?.channel){
+                    const pipe = new LinkRPCChannelPipe(connection,requestPacket.stream.channel);
+                    options.stream?.(pipe);
+                }
             }
             return responsePacket.result;
             

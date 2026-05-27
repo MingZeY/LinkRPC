@@ -63,7 +63,7 @@ interface FileMeta {
 
 interface FileServiceInterface{
     stat(uri:string):Promise<FileMeta>;
-    request(channel:string,uri:string):Promise<boolean>;
+    request(uri:string):Promise<boolean>;
 }
 
 const ServerDefine = new LinkRPCAPIDefine<{
@@ -79,18 +79,28 @@ class FileService implements FileServiceInterface,LinkRPCContextAware{
         this.basePath = path.join(__dirname, './file');
     }
 
-    private getContextConnection(){
+
+    private responseFile(filePath:string):boolean{
         const context = this[LinkRPCContextSymbol];
         if(!context){
-            return undefined;
+            return false;
         }
-        return context.connection;
-    }
-
-    private responseFile(connection:LinkRPCConnection,channel:string,filePath:string){
-        console.log('send file by channel:',channel,filePath);
-        const pipe = new LinkRPCChannelPipe(connection, channel);
-        fs.createReadStream(filePath).pipe(pipe);
+        const request = context.request;
+        if(!request){
+            return false;
+        }
+        const stream = request.stream;
+        if(!stream){
+            return false;
+        }
+        const connection = context.connection;
+        const pipe = new LinkRPCChannelPipe(connection, stream.channel);
+        const readStream = fs.createReadStream(filePath);
+        readStream.on('close',() => {
+            pipe.destroy();
+        })
+        readStream.pipe(pipe);
+        return true;
     }
     
     @LinkRPCAPIDefine.method()
@@ -111,53 +121,49 @@ class FileService implements FileServiceInterface,LinkRPCContextAware{
     }
 
     @LinkRPCAPIDefine.method()
-    async request(channel:string,name:string):Promise<boolean>{
-        console.log('recive',channel,name);
+    async request(name:string):Promise<boolean>{
         const filepath = path.join(this.basePath,name);
         if(!fs.existsSync(filepath)){
             return false;
         }
-        const connection = this.getContextConnection();
-        if(!connection){
-            return false;
-        }
-        this.responseFile(connection,channel,filepath);
-        return true;
+        return this.responseFile(filepath);
     }
 }
 
 export default class TestFileProxy extends TestCase{
+    private server?: LinkRPCServer<typeof ServerDefine,any>;
+    private proxy?: http.Server;
+    private connection?: LinkRPCConnection;
+
     name(): string {
         return 'FileProxy';
     }
 
 
     async run(): Promise<boolean> {
-        console.log()
 
-        const server = new LinkRPCServer({
+        this.server = new LinkRPCServer({
             local:ServerDefine,
-            provider:new LinkRPCBuildin.provider.Websocket(),
+            provider:new LinkRPCBuildin.provider.Socket(),
         })
-        server.hookService('file',new FileService());
-        server.hub.emitter.on('error',(e) => {
+        this.server.hookService('file',new FileService());
+        this.server.hub.emitter.on('error',(e) => {
             console.log(e);
         })
 
-        await server.listen({
+        await this.server.listen({
             port:3060,
         })
 
-        const proxy = new http.Server();
+        this.proxy = new http.Server();
         const client = new LinkRPCClient({
             remote:ServerDefine,
-            provider:new LinkRPCBuildin.provider.Websocket()
+            provider:new LinkRPCBuildin.provider.Socket()
         })
-        const connectionToServer = await client.connect({port:3060});
-        const api = client.getInterface(connectionToServer);
+        this.connection = await client.connect({port:3060});
+        const api = client.getInterface(this.connection);
 
-        proxy.addListener('request',async (req,res) => {
-            console.log(req.url);
+        this.proxy.addListener('request',async (req,res) => {
             if(!req.url?.startsWith('/file/')){
                 res.end('404 Not Found');
                 return;
@@ -196,44 +202,80 @@ export default class TestFileProxy extends TestCase{
                 res.setHeader('Content-Length', meta.size);
             }
 
-            const channelName = `file-${Date.now()}`;
-            const pipe = new LinkRPCChannelPipe(connectionToServer, channelName);
-
-            const timeout = setTimeout(() => {
-                pipe.destroy(new Error('File transfer timeout'));
-            }, 30 * 1000);
-            pipe.once('close', () => clearTimeout(timeout));
-            pipe.on('error', () => {
-                if (!res.headersSent) {
-                    res.statusCode = 500;
-                    res.end();
-                }
-            });
-
-            pipe.pipe(res);
-
-            const result = await api.file.request(channelName, uri).catch((e) => {
-                console.log(e);
-                return false;
-            });
-
-            if (!result) {
-                clearTimeout(timeout);
-                pipe.unpipe(res);
-                pipe.destroy();
+            // 开始请求文件
+            let pipe:LinkRPCChannelPipe | undefined;
+            const result = await api.request({
+                service:'file',
+                method:'request',
+                args:[uri],
+            },{
+                stream:(remotePipe) => {
+                    pipe = remotePipe;
+                },
+            })
+            if(!result){
+                pipe?.destroy();
+            }
+            if(!pipe){
                 res.statusCode = 404;
                 res.end('404 Not Found');
+                return;
             }
+            pipe.on('error',() => {
+                res.statusCode = 500;
+                res.end();
+            })
+            res.on('finish',() => {
+                pipe?.destroy();
+            })
+            pipe.pipe(res);
         })
 
-        proxy.listen(3061);
+        this.proxy.listen(3061);
 
-        await new Promise(r => setTimeout(r,30 * 1000));
+        const localFile = fs.readFileSync(path.join(__dirname, 'file', '100px.jpg'));
+
+        const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
+            const req = http.get('http://localhost:3061/file/100px.jpg', resolve);
+            req.on('error', reject);
+        });
+
+        await this.asert({
+            handler: () => response.statusCode === 200,
+            desc: `HTTP status should be 200, got ${response.statusCode}`,
+        });
+
+        await this.asert({
+            handler: () => response.headers['content-type'] === 'image/jpeg',
+            desc: `Content-Type should be image/jpeg, got ${response.headers['content-type']}`,
+        });
+
+        const body = await new Promise<Buffer>((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            response.on('data', (chunk: Buffer) => chunks.push(chunk));
+            response.on('end', () => resolve(Buffer.concat(chunks)));
+            response.on('error', reject);
+        });
+
+        await this.asert({
+            handler: () => body.equals(localFile),
+            desc: 'HTTP response body should match local 100px.jpg',
+        });
+
         return true;
     }
 
-    public finally(): Promise<void> {
-        return Promise.resolve();
+    public async finally(): Promise<void> {
+        if (this.proxy) {
+            this.proxy.closeAllConnections();
+            await new Promise<void>((resolve) => this.proxy!.close(() => resolve()));
+        }
+        if (this.connection) {
+            await this.connection.close();
+        }
+        if (this.server) {
+            await this.server.close();
+        }
     }
     
 }

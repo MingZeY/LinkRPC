@@ -11,6 +11,10 @@ export interface LinkRPCRequestPacket<S extends string = string,M extends string
     serviceName:S;
     methodName:M;
     args:P;
+    /** 向对端声明一个流，用于接收流数据 */
+    stream?:{
+        channel:string;
+    }
 }
 
 export interface LinkRPCResponsePacket<R extends any = any> extends LinkRPCPacket {

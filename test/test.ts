@@ -14,7 +14,7 @@ const testList = [
     import('./BuildinSocket.js'),
     import('./BuildinSocketIO.js'),
     import('./BuildinWebsocket.js'),
-    // import('./FileProxy.js'),
+    import('./FileProxy.js'),
 ]
 
 const tests:Array<TestCase> = [];

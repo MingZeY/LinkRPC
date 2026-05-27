@@ -29,6 +29,14 @@ class LinkRPCChannelPipe extends Duplex {
         };
     }
 
+    public getChannel():string{
+        return this.channel;
+    }
+
+    public getConnection():LinkRPCConnection{
+        return this.connection;
+    }
+
     _read(_size: number): void {
         // data is pushed from the binary event handler
     }
