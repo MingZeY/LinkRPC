@@ -5,15 +5,16 @@ const testList = [
     import('./Handler.js'),
     import('./Hub.js'),
     import('./Client.js'),
-    import('./BuildinHTTP.js'),
-    import('./BuildinSocket.js'),
-    import('./BuildinSocketIO.js'),
-    import('./BuildinWebsocket.js'),
+    import('./Binary.js'),
     import('./Middleware.js'),
     import('./Context.js'),
     import('./Connection.js'),
     import('./Schema.js'),
     import('./Define.js'),
+    import('./BuildinHTTP.js'),
+    import('./BuildinSocket.js'),
+    import('./BuildinSocketIO.js'),
+    import('./BuildinWebsocket.js'),
 ]
 
 const tests:Array<TestCase> = [];

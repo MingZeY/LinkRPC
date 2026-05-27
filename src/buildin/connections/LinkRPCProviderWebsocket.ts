@@ -1,4 +1,4 @@
-import { LinkRPCConnection } from '../../connection.js'
+import { LinkRPCConnection, MAX_BINARY_PAYLOAD_SIZE, MAX_CHANNEL_NAME_LENGTH } from '../../connection.js'
 import { LinkRPCPacketFactory, type LinkRPCPacket } from '../../packet.js';
 import { LinkRPCProvider } from '../../provider.js'
 import { dynamicimport } from '../../utils.js';
@@ -27,11 +27,29 @@ class LinkRPCConnectionWS extends LinkRPCConnection {
         private socket: WebSocketClient
     ) {
         super();
-        socket.on('message', (data: Buffer | string) => {
-            const message = typeof data === 'string' ? data : data.toString();
-            const packet = LinkRPCPacketFactory.parsePacketFromString(message);
-            if (packet) {
-                this.emitter.emit('receive', packet);
+        socket.on('message', (data: Buffer | string, isBinary: boolean) => {
+            if (isBinary) {
+                const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as string);
+                if (buf.length < 4) return;
+                const nameLen = buf.readUInt32BE(0);
+                if (nameLen > MAX_CHANNEL_NAME_LENGTH) {
+                    this.close();
+                    return;
+                }
+                if (buf.length < 4 + nameLen) return;
+                const channel = buf.subarray(4, 4 + nameLen).toString('utf-8');
+                const payload = buf.subarray(4 + nameLen);
+                if (payload.length > MAX_BINARY_PAYLOAD_SIZE) {
+                    this.close();
+                    return;
+                }
+                this.emitter.emit('binary', channel, payload);
+            } else {
+                const message = typeof data === 'string' ? data : data.toString();
+                const packet = LinkRPCPacketFactory.parsePacketFromString(message);
+                if (packet) {
+                    this.emitter.emit('receive', packet);
+                }
             }
         });
         socket.on('close', () => {
@@ -45,6 +63,22 @@ class LinkRPCConnectionWS extends LinkRPCConnection {
             throw new Error('connection is closed');
         }
         this.socket.send(JSON.stringify(packet));
+        return Promise.resolve();
+    }
+
+    sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        if (this.isClosed()) throw new Error('connection is closed');
+        const nameBuf = Buffer.from(channel, 'utf-8');
+        if (nameBuf.length > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+        const payload = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        if (payload.length > MAX_BINARY_PAYLOAD_SIZE) {
+            throw new Error(`Payload exceeds ${MAX_BINARY_PAYLOAD_SIZE} bytes`);
+        }
+        const nameLen = Buffer.alloc(4);
+        nameLen.writeUInt32BE(nameBuf.length, 0);
+        this.socket.send(Buffer.concat([nameLen, nameBuf, payload]), { binary: true });
         return Promise.resolve();
     }
 
@@ -70,12 +104,32 @@ class LinkRPCConnectionWebsocket extends LinkRPCConnection {
         private socket: InstanceType<typeof WebSocket>
     ) {
         super();
+        socket.binaryType = 'arraybuffer';
         socket.addEventListener('message', (event) => {
             const data = event.data;
-            const message = typeof data == 'string' ? data : String(data);
-            const packet = LinkRPCPacketFactory.parsePacketFromString(message);
-            if (packet) {
-                this.emitter.emit('receive', packet);
+            if (data instanceof ArrayBuffer) {
+                if (data.byteLength < 4) return;
+                const view = new DataView(data);
+                const nameLen = view.getUint32(0, false);
+                if (nameLen > MAX_CHANNEL_NAME_LENGTH) {
+                    this.close();
+                    return;
+                }
+                if (data.byteLength < 4 + nameLen) return;
+                const nameBytes = new Uint8Array(data, 4, nameLen);
+                const channel = new TextDecoder().decode(nameBytes);
+                const payloadLen = data.byteLength - 4 - nameLen;
+                if (payloadLen > MAX_BINARY_PAYLOAD_SIZE) {
+                    this.close();
+                    return;
+                }
+                const payload = new Uint8Array(data, 4 + nameLen);
+                this.emitter.emit('binary', channel, payload);
+            } else if (typeof data === 'string') {
+                const packet = LinkRPCPacketFactory.parsePacketFromString(data);
+                if (packet) {
+                    this.emitter.emit('receive', packet);
+                }
             }
         })
         socket.addEventListener('close', () => {
@@ -90,6 +144,25 @@ class LinkRPCConnectionWebsocket extends LinkRPCConnection {
         this.socket.send(JSON.stringify(packet));
         return Promise.resolve()
     }
+
+    sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        if (this.isClosed()) throw new Error('connection is closed');
+        const nameBuf = new TextEncoder().encode(channel);
+        if (nameBuf.length > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+        if (data.length > MAX_BINARY_PAYLOAD_SIZE) {
+            throw new Error(`Payload exceeds ${MAX_BINARY_PAYLOAD_SIZE} bytes`);
+        }
+        const frame = new Uint8Array(4 + nameBuf.length + data.length);
+        const view = new DataView(frame.buffer);
+        view.setUint32(0, nameBuf.length, false);
+        frame.set(nameBuf, 4);
+        frame.set(data, 4 + nameBuf.length);
+        this.socket.send(frame.buffer);
+        return Promise.resolve();
+    }
+
     close(): Promise<void> {
         if (this.isClosed()) {
             return Promise.resolve();

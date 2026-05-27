@@ -1,4 +1,4 @@
-import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCConnection, MAX_CHANNEL_NAME_LENGTH } from "../../connection.js";
 import type { LinkRPCPacket } from "../../packet.js";
 import { LinkRPCProvider } from "../../provider.js";
 
@@ -16,6 +16,17 @@ class LinkRPCConnectionMemory extends LinkRPCConnection{
             throw new Error("target is not set");
         }
         this.target.emitter.emit('receive',packet);
+        return Promise.resolve();
+    }
+
+    sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        if (!this.target) throw new Error("target is not set");
+        if (this.isClosed()) throw new Error('connection is closed');
+        if (Buffer.byteLength(channel, 'utf-8') > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+        const payload = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        this.target.emitter.emit('binary', channel, payload);
         return Promise.resolve();
     }
 

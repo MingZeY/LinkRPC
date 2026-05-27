@@ -1,4 +1,4 @@
-import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCConnection, MAX_BINARY_PAYLOAD_SIZE, MAX_CHANNEL_NAME_LENGTH } from "../../connection.js";
 import { LinkRPCPacketFactory, type LinkRPCPacket } from "../../packet.js";
 import { LinkRPCProvider } from "../../provider.js";
 import { dynamicimport } from "../../utils.js";
@@ -32,6 +32,22 @@ class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
                 this.emitter.emit('receive',packet);
             }
         })
+        this.socket.on('channel', (frame: Buffer) => {
+            if (frame.length < 4) return;
+            const nameLen = frame.readUInt32BE(0);
+            if (nameLen > MAX_CHANNEL_NAME_LENGTH) {
+                this.close();
+                return;
+            }
+            if (frame.length < 4 + nameLen) return;
+            const channel = frame.subarray(4, 4 + nameLen).toString('utf-8');
+            const data = frame.subarray(4 + nameLen);
+            if (data.length > MAX_BINARY_PAYLOAD_SIZE) {
+                this.close();
+                return;
+            }
+            this.emitter.emit('binary', channel, data);
+        })
         this.socket.on('disconnect',() => {
             this.emitter.emit('closed');
         })
@@ -39,6 +55,21 @@ class LinkRPCConnectionSocketIOServer extends LinkRPCConnection{
 
     send(packet: LinkRPCPacket): Promise<void> {
         this.socket.emit('message',JSON.stringify(packet));
+        return Promise.resolve();
+    }
+
+    sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        const nameBuf = Buffer.from(channel, 'utf-8');
+        if (nameBuf.length > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+        const payload = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        if (payload.length > MAX_BINARY_PAYLOAD_SIZE) {
+            throw new Error(`Payload exceeds ${MAX_BINARY_PAYLOAD_SIZE} bytes`);
+        }
+        const nameLen = Buffer.alloc(4);
+        nameLen.writeUInt32BE(nameBuf.length, 0);
+        this.socket.emit('channel', Buffer.concat([nameLen, nameBuf, payload]));
         return Promise.resolve();
     }
 
@@ -65,6 +96,22 @@ class LinkRPCConnectionSocketIOClient extends LinkRPCConnection{
                 this.emitter.emit('receive',packet);
             }
         })
+        this.socket.on('channel', (frame: Buffer) => {
+            if (frame.length < 4) return;
+            const nameLen = frame.readUInt32BE(0);
+            if (nameLen > MAX_CHANNEL_NAME_LENGTH) {
+                this.close();
+                return;
+            }
+            if (frame.length < 4 + nameLen) return;
+            const channel = frame.subarray(4, 4 + nameLen).toString('utf-8');
+            const data = frame.subarray(4 + nameLen);
+            if (data.length > MAX_BINARY_PAYLOAD_SIZE) {
+                this.close();
+                return;
+            }
+            this.emitter.emit('binary', channel, data);
+        })
         this.socket.on('disconnect',() => {
             this.emitter.emit('closed');
             this.closed = true;
@@ -73,6 +120,21 @@ class LinkRPCConnectionSocketIOClient extends LinkRPCConnection{
 
     send(packet: LinkRPCPacket): Promise<void> {
         this.socket.emit('message',JSON.stringify(packet));
+        return Promise.resolve();
+    }
+
+    sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        const nameBuf = Buffer.from(channel, 'utf-8');
+        if (nameBuf.length > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+        const payload = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        if (payload.length > MAX_BINARY_PAYLOAD_SIZE) {
+            throw new Error(`Payload exceeds ${MAX_BINARY_PAYLOAD_SIZE} bytes`);
+        }
+        const nameLen = Buffer.alloc(4);
+        nameLen.writeUInt32BE(nameBuf.length, 0);
+        this.socket.emit('channel', Buffer.concat([nameLen, nameBuf, payload]));
         return Promise.resolve();
     }
 

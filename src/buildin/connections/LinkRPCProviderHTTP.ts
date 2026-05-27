@@ -1,4 +1,4 @@
-import { LinkRPCConnection } from "../../connection.js";
+import { LinkRPCConnection, MAX_BINARY_PAYLOAD_SIZE, MAX_CHANNEL_NAME_LENGTH } from "../../connection.js";
 import { LinkRPCPacketFactory, type LinkRPCPacket } from "../../packet.js";
 import { LinkRPCProvider } from "../../provider.js";
 import { dynamicimport } from "../../utils.js";
@@ -37,7 +37,7 @@ class LinkRPCConnectionHTTP extends LinkRPCConnection{
         if(this.isClosed()){
             throw new Error('connection is closed');
         }
-        if(this.parames.side == 'client'){// fetch to send
+        if(this.parames.side == 'client'){
             if(!this.parames.fetch){
                 throw new Error('fetch is not supported');
             }
@@ -48,7 +48,6 @@ class LinkRPCConnectionHTTP extends LinkRPCConnection{
                 method: 'POST',
                 body: JSON.stringify(packet),
                 headers: {
-                    /** Must set linkrpc to 1 ,otherwise server will think it is a normal POST request */
                     linkrpc: '1',
                 }
             }).then((res) => {
@@ -58,12 +57,39 @@ class LinkRPCConnectionHTTP extends LinkRPCConnection{
             if(responsePacket){
                 this.emitter.emit('receive',responsePacket);
             }
-        }else if(this.parames.side == 'server'){// res to send
+        }else if(this.parames.side == 'server'){
             this.parames.res.end(JSON.stringify(packet),() => {
-                /** Close connection when response is sent ,because http is stateless */
                 this.close();
             });
         }
+    }
+
+    async sendBinary(channel: string, data: Uint8Array): Promise<void> {
+        if (this.isClosed()) throw new Error('connection is closed');
+        if (this.parames.side === 'server') {
+            throw new Error('HTTP server connection cannot send binary data');
+        }
+        if (!this.parames.fetch) throw new Error('fetch is not supported');
+        if (!this.parames.target) throw new Error('target is not provided');
+
+        const nameEncoded = new TextEncoder().encode(channel);
+        if (nameEncoded.length > MAX_CHANNEL_NAME_LENGTH) {
+            throw new Error(`Channel name exceeds ${MAX_CHANNEL_NAME_LENGTH} bytes`);
+        }
+
+        if (data.length > MAX_BINARY_PAYLOAD_SIZE) {
+            throw new Error(`Payload exceeds ${MAX_BINARY_PAYLOAD_SIZE} bytes`);
+        }
+
+        await this.parames.fetch(`${this.parames.protocol}://${this.parames.target.hostname || 'localhost'}:${this.parames.target.port}`, {
+            method: 'POST',
+            body: data,
+            headers: {
+                'linkrpc-channel': '1',
+                'linkrpc-channel-name': channel,
+                'content-type': 'application/octet-stream',
+            },
+        });
     }
 
     async close(): Promise<void> {
@@ -137,20 +163,53 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
             if(req.method == 'OPTIONS'){
                 res.setHeader('Access-Control-Allow-Origin', '*');
                 res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-                res.setHeader('Access-Control-Allow-Headers', 'linkrpc, Content-Type');
-                res.setHeader('Access-Control-Max-Age', '86400'); // 缓存预检 1 天，减少 OPTIONS
+                res.setHeader('Access-Control-Allow-Headers', 'linkrpc, linkrpc-channel, linkrpc-channel-name, Content-Type');
+                res.setHeader('Access-Control-Max-Age', '86400');
                 res.writeHead(200);
                 res.end();
                 return;
             }
 
-            /** 
-             * Request must be POST method and linkrpc=1 in headers
-             * and body must be JSON string
-             * and the body must be a valid packet
-             * 
-             * if not,ignore it
-             */
+            res.setHeader('Access-Control-Allow-Origin', '*');
+
+            if (req.headers['linkrpc-channel'] === '1') {
+                const channelName = req.headers['linkrpc-channel-name'];
+                if (!channelName || typeof channelName !== 'string' || channelName.length === 0) {
+                    res.writeHead(400);
+                    res.end();
+                    return;
+                }
+                if (Buffer.byteLength(channelName, 'utf-8') > MAX_CHANNEL_NAME_LENGTH) {
+                    res.writeHead(400);
+                    res.end();
+                    return;
+                }
+
+                const chunks: Buffer[] = [];
+                let bodyLength = 0;
+                req.on('data', (chunk: Buffer) => {
+                    bodyLength += chunk.length;
+                    if (bodyLength > MAX_BINARY_PAYLOAD_SIZE) {
+                        req.destroy();
+                        return;
+                    }
+                    chunks.push(chunk);
+                });
+                req.on('end', () => {
+                    const connection = new LinkRPCConnectionHTTP({
+                        side: 'server',
+                        protocol: this.config.protocol || this.defaultProtocol,
+                        req,
+                        res,
+                    });
+                    this.emitter.emit('connection', connection);
+                    connection.emitter.emit('binary', channelName, Buffer.concat(chunks));
+                    res.writeHead(200);
+                    res.end();
+                });
+                return;
+            }
+
             if (req.method !== 'POST'
             || req.headers['linkrpc'] !== '1'
             ) {
@@ -158,8 +217,6 @@ class LinkRPCProviderHTTP extends LinkRPCProvider{
                 res.end();
                 return;
             }
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Access-Control-Allow-Headers', 'linkrpc');
 
             // receive request body,
             let body:string = '';
