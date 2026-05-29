@@ -49,6 +49,8 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
     public handler: LinkRPCHandler;
     public middlewares: LinkRPCMiddleware[];
 
+    public interfaceWeakCache = new WeakMap<LinkRPCConnection, LinkRPCInterface<any>>();
+
     public define: {
         local?: L | undefined,
         remote?: R | undefined,
@@ -287,6 +289,9 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
     }
 
     public getInterface(connection: LinkRPCConnection) {
+        if(this.interfaceWeakCache.has(connection)){
+            return this.interfaceWeakCache.get(connection) as LinkRPCInterface<R,LinkRPCCoreRequestOptions>;
+        }
         const define = this.define.remote;
         const interfaces = new LinkRPCInterface<R,LinkRPCCoreRequestOptions>(async (target,options) => {
             const config = define?.resolveMethodConfig(target.service, target.method);
@@ -322,6 +327,7 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
             return responsePacket.result;
             
         },this.default.requestOptions);
+        this.interfaceWeakCache.set(connection,interfaces);
         return interfaces;
     }
 
