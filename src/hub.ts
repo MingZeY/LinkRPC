@@ -389,5 +389,6 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
 }
 
 export {
+    type LinkRPCCoreRequestOptions,
     LinkRPCHub
 }

@@ -1,4 +1,5 @@
 import type { LinkRPCAPIDefine, LinkRPCAPIDefineType } from "./define.js";
+import type { LinkRPCCoreRequestOptions } from "./hub.js";
 
 type LinkRPCInterfaceTarget<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> = D extends LinkRPCAPIDefine<infer U> ? {
     [S in keyof U & string]:{
@@ -16,9 +17,7 @@ type LinkRPCInterfaceTarget<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> = 
 }[keyof U & string] : never;
 
 
-type LinkRPCInterfaceConfig = {
-
-}
+type LinkRPCInterfaceConfig = LinkRPCCoreRequestOptions;
 
 type LinkRPCInterfaceHandler<D extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,C extends LinkRPCInterfaceConfig> = (target:LinkRPCInterfaceTarget<D>,config?:C | undefined) => Promise<any>;
 
