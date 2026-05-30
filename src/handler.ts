@@ -7,7 +7,7 @@ import { TypedEmitter } from "./utils.js";
 
 
 type LinkRPCHandlerEvents = {
-    
+    error(error:Error):void;
 }
 /**
  * 处理所有LinkRPC数据包，将 request packet 调用对应的 hook 转为 response packet
@@ -68,7 +68,11 @@ class LinkRPCHandler{
         // get service
         const service = this.hooks[request.serviceName];
         if(!service){
-            throw new Error(`handler not found.`);
+            this.emitter.emit('error',new Error(`handler not found,service:${request.serviceName} method:${request.methodName}`))
+            return LinkRPCPacketFactory.createResponsePacket({
+                requestId:request.id,
+                error:'bad request'
+            })
         }
 
         // get config
@@ -90,7 +94,11 @@ class LinkRPCHandler{
         // get hook
         const hook = service[request.methodName];
         if(!hook){
-            throw new Error(`handler not found.`);
+            this.emitter.emit('error',new Error(`handler not found,service:${request.serviceName} method:${request.methodName}`));
+            return LinkRPCPacketFactory.createResponsePacket({
+                requestId:request.id,
+                error:'bad request'
+            })
         }
 
         let result = await hook.handler.call(new Proxy(hook.bind || {},{
