@@ -330,7 +330,10 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
         const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
         const socket = new wsSupport.WebSocket(url);
         const connection = new LinkRPCConnectionWS(socket);
-        return new Promise<LinkRPCConnection>((resolve) => {
+        return new Promise<LinkRPCConnection>((resolve, reject) => {
+            socket.on('error',(error) => {
+                reject(error);
+            })
             socket.on('open', () => {
                 resolve(connection);
             });
@@ -349,7 +352,10 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
         const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
         const socket = new websocketSupport(url);
         const connection = new LinkRPCConnectionWebsocket(socket);
-        return new Promise<LinkRPCConnection>((resolve) => {
+        return new Promise<LinkRPCConnection>((resolve, reject) => {
+            socket.addEventListener('error', (error) => {
+                reject(error);
+            })
             socket.addEventListener('open', () => {
                 resolve(connection);
             })
