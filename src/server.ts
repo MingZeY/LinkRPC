@@ -16,6 +16,7 @@ type LinkRPCServerConfig<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R exte
 }
 
 type LinkRPCServerEvents = {
+    error:(e:Error) => void,
     connection:(connection:LinkRPCConnection) => void,
 }
 
@@ -61,6 +62,9 @@ class LinkRPCServer<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
             connection.emitter.once('closed',() => {
                 connection.emitter.off('receive',reviceHandler);
             })
+        })
+        this.hub.emitter.on('error',(e) => {
+            this.emitter.emit('error',e);
         })
     }
 

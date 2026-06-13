@@ -16,6 +16,7 @@ type LinkRPCClientConfig<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R exte
 }
 
 type LinkRPCClientEvents = {
+    error:(e:Error) => void,
     connection:(connection:LinkRPCConnection) => void,
 }
 
@@ -54,7 +55,9 @@ class LinkRPCClient<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>,R extends L
     }
 
     private initEvents(){
-        
+        this.hub.emitter.on('error',(e) => {
+            this.emitter.emit('error',e);
+        })
     }
 
     public get hook(){

@@ -21,14 +21,14 @@ type LinkRPCCoreRequestOptions = {
     stream?:(pipe:LinkRPCChannelPipe|undefined) => void
 }
 
-type LinkRPCEvents = {
+type LinkRPCHubEvents = {
     receive: (packet: LinkRPCPacket) => void,
     error: (e: Error) => void,
 }
 
 class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends LinkRPCAPIDefine<LinkRPCAPIDefineType>> {
 
-    public emitter = new TypedEmitter<LinkRPCEvents>();
+    public emitter = new TypedEmitter<LinkRPCHubEvents>();
 
     public default: {
         requestOptions: LinkRPCCoreRequestOptions,
@@ -71,6 +71,13 @@ class LinkRPCHub<L extends LinkRPCAPIDefine<LinkRPCAPIDefineType>, R extends Lin
             resolver:this.requestContextResolve.bind(this)
         }));
         this.define = params?.define || {};
+        this.initEvents();
+    }
+
+    private initEvents(){
+        this.handler.emitter.on('error',(e) => {
+            this.emitter.emit('error',e);
+        })
     }
 
     public async inbound(connection: LinkRPCConnection, inboundPacket: LinkRPCPacket, pipe: boolean = true): Promise<LinkRPCContext> {
