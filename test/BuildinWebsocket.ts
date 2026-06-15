@@ -24,7 +24,11 @@ export default class TestBuildinWebsocket extends TestCase{
         const server = new LinkRPCServer({
             local:ServerDefine,
             remote:ClientDefine,
-            provider:new LinkRPCBuildin.provider.Websocket()
+            provider:new LinkRPCBuildin.provider.Websocket({
+                options:{
+                    path:'/api'
+                }
+            })
         });
 
         server.hook('math','add',{
@@ -49,7 +53,11 @@ export default class TestBuildinWebsocket extends TestCase{
         const client = new LinkRPCClient({
             local:ClientDefine,
             remote:ServerDefine,
-            provider:new LinkRPCBuildin.provider.Websocket(),
+            provider:new LinkRPCBuildin.provider.Websocket({
+                options:{
+                    path:'/api'
+                }
+            }),
         })
         client.hook('status','ping',{
             handler() {
