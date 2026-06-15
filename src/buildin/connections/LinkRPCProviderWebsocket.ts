@@ -184,6 +184,9 @@ type LinkRPCProviderWebsocketConfig = {
         cert: string | Buffer,
         key: string | Buffer,
     },
+    options?:{
+        path?:string,
+    }
 }
 
 class LinkRPCProviderWebsocket extends LinkRPCProvider {
@@ -254,7 +257,7 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
         if (!wsSupport) {
             throw new Error('ws module not found, try set config.lib.ws to import("ws") or install ws module');
         }
-        const wsServer = new wsSupport.WebSocketServer({ server });
+        const wsServer = new wsSupport.WebSocketServer({ server, path: this.config.options?.path });
         return wsServer;
     }
 
@@ -327,7 +330,8 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
             throw new Error('ws module not found, try set config.lib.ws to import("ws") or install ws module');
         }
         const protocol: Protocol = this.config.protocol || this.defaultProtocol;
-        const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
+        const path = this.config.options?.path || '';
+        const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}${path}`;
         const socket = new wsSupport.WebSocket(url);
         const connection = new LinkRPCConnectionWS(socket);
         return new Promise<LinkRPCConnection>((resolve, reject) => {
@@ -349,7 +353,8 @@ class LinkRPCProviderWebsocket extends LinkRPCProvider {
             throw new Error('websocket support not found');
         }
         const protocol: Protocol = this.config.protocol || this.defaultProtocol;
-        const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}`;
+        const path = this.config.options?.path || '';
+        const url = `${protocol}://${params.hostname || 'localhost'}:${params.port}${path}`;
         const socket = new websocketSupport(url);
         const connection = new LinkRPCConnectionWebsocket(socket);
         return new Promise<LinkRPCConnection>((resolve, reject) => {
