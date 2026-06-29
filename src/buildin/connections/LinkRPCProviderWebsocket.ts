@@ -62,8 +62,15 @@ class LinkRPCConnectionWS extends LinkRPCConnection {
         if (this.isClosed()) {
             throw new Error('connection is closed');
         }
-        this.socket.send(JSON.stringify(packet));
-        return Promise.resolve();
+        return new Promise((resolve,reject) => {
+            this.socket.send(JSON.stringify(packet),(err) => {
+                if(err){
+                    reject(err);
+                }else{
+                    resolve();
+                }
+            });
+        })
     }
 
     sendBinary(channel: string, data: Uint8Array): Promise<void> {
@@ -141,8 +148,14 @@ class LinkRPCConnectionWebsocket extends LinkRPCConnection {
         if (this.isClosed()) {
             throw new Error('connection is closed');
         }
-        this.socket.send(JSON.stringify(packet));
-        return Promise.resolve()
+        return new Promise((resolve,reject) => {
+            try{
+                this.socket.send(JSON.stringify(packet));
+                resolve();
+            }catch(err){
+                reject(err);
+            }
+        })
     }
 
     sendBinary(channel: string, data: Uint8Array): Promise<void> {
