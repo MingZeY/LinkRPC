@@ -148,6 +148,9 @@ class LinkRPCConnectionWebsocket extends LinkRPCConnection {
         if (this.isClosed()) {
             throw new Error('connection is closed');
         }
+        if (this.socket.readyState === WebSocket.CLOSING) {
+            throw new Error('WebSocket is closing');
+        }
         return new Promise((resolve,reject) => {
             try{
                 this.socket.send(JSON.stringify(packet));
