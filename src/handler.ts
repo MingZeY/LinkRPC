@@ -78,12 +78,16 @@ class LinkRPCHandler{
         // get config
         const config = this.define?.resolveMethodConfig(request.serviceName,request.methodName);
 
-        // schema check
-        const schema = config?.schema;
-        if(schema?.args){
+        // validate args before method execution
+        const validator = config?.validator;
+        if(validator){
+            let valid = false;
             try{
-                request.args = await schema.args.parseAsync(request.args);
+                valid = !!validator(request.args);
             }catch(e){
+                valid = false;
+            }
+            if(!valid){
                 return LinkRPCPacketFactory.createResponsePacket({
                     requestId:request.id,
                     error:'bad request',
@@ -101,7 +105,7 @@ class LinkRPCHandler{
             })
         }
 
-        let result = await hook.handler.call(new Proxy(hook.bind || {},{
+        const result = await hook.handler.call(new Proxy(hook.bind || {},{
             get(target,prop){
                 if(prop === LinkRPCContextSymbol){
                     return context;
@@ -109,18 +113,6 @@ class LinkRPCHandler{
                 return Reflect.get(target,prop);
             }
         }),...request.args);
-
-        // schema check
-        if(schema?.return){
-            try{
-                result = await schema.return.parseAsync(result);
-            }catch(e){
-                return LinkRPCPacketFactory.createResponsePacket({
-                    requestId:request.id,
-                    error:'bad response',
-                })
-            }
-        }
 
         const response = LinkRPCPacketFactory.createResponsePacket({
             requestId:request.id,

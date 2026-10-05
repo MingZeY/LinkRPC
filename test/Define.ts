@@ -1,4 +1,4 @@
-import { LinkRPCAPIDefine,  LinkRPCConnection,  LinkRPCHub, LinkRPCPacketFactory, LinkRPCSchemaBuilder, type LinkRPCContext} from "../src/index.js";
+import { LinkRPCAPIDefine,  LinkRPCConnection,  LinkRPCHub, LinkRPCPacketFactory, type LinkRPCContext} from "../src/index.js";
 import { TestCase } from "./TestCase.js";
 
 
@@ -17,21 +17,21 @@ export default class TestDefine extends TestCase{
             }
         }
 
-        const define = new LinkRPCAPIDefine<DefineType>()
-
-        const builder = new LinkRPCSchemaBuilder();
-
-        define.setSchemaAll({
-            Math:{
-                add:{
-                    args:builder.build(t => t.args(t.number(),t.number())),
-                    return:builder.build(t => t.promise(t.number())),
-                }
-            },
-            String:{
-                concat:{
-                    args:builder.build(t => t.args(t.string(),t.string())),
-                    return:builder.build(t => t.promise(t.string()))
+        const define = new LinkRPCAPIDefine<DefineType>({
+            services:{
+                Math:{
+                    methods:{
+                        add:{
+                            validator:(args) => typeof args[0] === 'number' && typeof args[1] === 'number',
+                        }
+                    }
+                },
+                String:{
+                    methods:{
+                        concat:{
+                            validator:(args) => typeof args[0] === 'string' && typeof args[1] === 'string',
+                        }
+                    }
                 }
             }
         });

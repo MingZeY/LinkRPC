@@ -1,16 +1,19 @@
-import type { LinkRPCSchemaField } from "./schema.js";
 import { LinkRPCMethodListSymbol, LinkRPCMethodSymbol } from "./symbol.js";
 
 import { LinkRPCServiceSymbol } from "./symbol.js";
 
 type LinkRPCAPIDefineType = Record<string,Record<string,any>>
+
+/**
+ * 方法参数校验器，返回 false 视为参数非法
+ */
+type LinkRPCMethodValidator = (args:any[]) => boolean;
+
 type LinkRPCMethodConfig = {
     // timeout for this method
     timeout?:number | undefined;//ms
-    schema?:{
-        args?:LinkRPCSchemaField<any> | undefined,
-        return?:LinkRPCSchemaField<any> | undefined
-    }
+    // validate args before method execution
+    validator?:LinkRPCMethodValidator | undefined;
 }
 
 
@@ -113,37 +116,10 @@ class LinkRPCAPIDefine<T extends LinkRPCAPIDefineType> {
         // type check with required
         const config:Required<LinkRPCMethodConfig> = {
             timeout: methodConfig?.timeout || serviceConfig?.timeout || this.config.timeout,
-            schema:methodConfig.schema || {}
+            validator: methodConfig?.validator
         }
         
         return config;
-    }
-
-    public setSchemaAll(schema:{
-        [S in keyof T & string]:{
-            [M in keyof T[S] & string]:{
-                args?:LinkRPCSchemaField<Parameters<T[S][M]>> | undefined,
-                return?:LinkRPCSchemaField<ReturnType<T[S][M]>> | undefined,
-            }
-        }
-    }){
-        for(const serviceName in schema){
-            const service = schema[serviceName];
-            for(const methodName in service){
-                const schema = service[methodName];
-                // const config = (this.getMethodConfig(serviceName,methodName) || this.DEFAULT_METHOD_CONFIG)
-                const config = {
-                    ...this.DEFAULT_METHOD_CONFIG,
-                    ...this.getMethodConfig(serviceName,methodName)
-                }
-                if(!config.schema){
-                    config.schema = {}
-                }
-                config.schema.args = schema?.args;
-                config.schema.return = schema?.return;
-                this.setMethodConfig(serviceName,methodName,config);
-            }
-        }
     }
 }
 
@@ -153,5 +129,6 @@ export {
     type LinkRPCDefineConfig,
     type LinkRPCServiceConfig,
     type LinkRPCMethodConfig,
+    type LinkRPCMethodValidator,
     LinkRPCAPIDefine,
 }

@@ -1,1 +1,0 @@
-Schema类型系统的TupleField对可选字段不兼容，需要重构整个Schema类型系统。

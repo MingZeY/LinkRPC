@@ -8,7 +8,7 @@ const testList = [
     import('./Middleware.js'),
     import('./Context.js'),
     import('./Connection.js'),
-    import('./Schema.js'),
+    import('./Validator.js'),
     import('./Define.js'),
     import('./BuildinHTTP.js'),
     import('./BuildinSocket.js'),
